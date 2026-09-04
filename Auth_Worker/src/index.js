@@ -1,6 +1,6 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 
 export default {
   async fetch(request, env) {
@@ -8,15 +8,15 @@ export default {
       const url = new URL(request.url);
 
       if (request.method === 'OPTIONS') {
-        return applyCors(new Response(null, { status: 204 }), request, env);
+        return cors(new Response(null, { status: 204 }), request, env);
       }
 
       if (url.pathname === '/health') {
-        return safeJson({ ok: true, service: 'HYPN Remote Image Auth', version: VERSION }, 200, request, env);
+        return json({ ok: true, service: 'HYPN Remote Image Auth', version: VERSION }, 200, request, env);
       }
 
       if (url.pathname === '/debug/env') {
-        return safeJson({
+        return json({
           ok: true,
           version: VERSION,
           configured: {
@@ -37,17 +37,16 @@ export default {
         }, 200, request, env);
       }
 
-      if (url.pathname === '/auth/login') return login(request, env);
-      if (url.pathname === '/auth/callback') return callback(request, env);
-      if (url.pathname === '/api/me') return apiMe(request, env);
-      if (url.pathname === '/api/config') return apiConfig(request, env);
-      if (url.pathname === '/api/publish' && request.method === 'POST') return apiPublish(request, env);
+      if (url.pathname === '/auth/login') return await login(request, env);
+      if (url.pathname === '/auth/callback') return await callback(request, env);
+      if (url.pathname === '/api/me') return await apiMe(request, env);
+      if (url.pathname === '/api/config') return await apiConfig(request, env);
+      if (url.pathname === '/api/publish' && request.method === 'POST') return await apiPublish(request, env);
 
-      return applyCors(new Response('Not found', { status: 404 }), request, env);
+      return cors(new Response('Not found', { status: 404 }), request, env);
     } catch (err) {
-      // Nunca dejar escapar una excepcion al runtime de Cloudflare.
       const message = err && err.message ? err.message : String(err);
-      return safeJson({ ok: false, error: message, version: VERSION }, 500, request, env);
+      return json({ ok: false, error: message, version: VERSION }, 500, request, env);
     }
   }
 };
@@ -59,15 +58,13 @@ async function login(request, env) {
   const returnUrl = url.searchParams.get('return_url') || env.PUBLIC_ORIGIN;
   ensureAllowedReturn(returnUrl, env.PUBLIC_ORIGIN);
 
-  const statePayload = {
+  const state = await signState({
     returnUrl,
     ts: Date.now(),
     nonce: crypto.randomUUID()
-  };
+  }, env.SESSION_SECRET);
 
-  const state = await signState(statePayload, env.SESSION_SECRET);
   const redirectUri = new URL('/auth/callback', url.origin).toString();
-
   const authorize = new URL('https://github.com/login/oauth/authorize');
   authorize.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
   authorize.searchParams.set('redirect_uri', redirectUri);
@@ -83,12 +80,11 @@ async function callback(request, env) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-
-  if (!code || !state) throw new Error('GitHub no devolvio code/state.');
+  if (!code || !state) throw new Error('GitHub no devolvió code/state.');
 
   const statePayload = await verifyState(state, env.SESSION_SECRET);
-  if (!statePayload || Date.now() - statePayload.ts > 10 * 60 * 1000) {
-    throw new Error('Estado OAuth invalido o vencido.');
+  if (!statePayload || !statePayload.ts || Date.now() - statePayload.ts > 10 * 60 * 1000) {
+    throw new Error('Estado OAuth inválido o vencido. Vuelve a iniciar sesión.');
   }
 
   ensureAllowedReturn(statePayload.returnUrl, env.PUBLIC_ORIGIN);
@@ -111,17 +107,17 @@ async function callback(request, env) {
 
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok || !tokenData.access_token) {
-    throw new Error(tokenData.error_description || tokenData.error || 'No se pudo obtener token OAuth.');
+    throw new Error(tokenData.error_description || tokenData.error || 'No se pudo obtener el token OAuth de GitHub.');
   }
 
   const user = await githubJson('https://api.github.com/user', tokenData.access_token);
-
-  if (env.ALLOWED_USER && user.login.toLowerCase() !== env.ALLOWED_USER.toLowerCase()) {
-    throw new Error('Esta cuenta de GitHub no esta autorizada para administrar HYPN.');
+  if (env.ALLOWED_USER && String(user.login).toLowerCase() !== String(env.ALLOWED_USER).toLowerCase()) {
+    throw new Error('Esta cuenta de GitHub no está autorizada para administrar HYPN.');
   }
 
-  const permission = await githubJson(`https://api.github.com/repos/${env.ALLOWED_REPO}`, tokenData.access_token);
-  if (!permission.permissions || (!permission.permissions.push && !permission.permissions.admin && !permission.permissions.maintain)) {
+  const repo = await githubJson(`https://api.github.com/repos/${env.ALLOWED_REPO}`, tokenData.access_token);
+  const p = repo.permissions || {};
+  if (!(p.push || p.admin || p.maintain)) {
     throw new Error('La cuenta no tiene permiso de escritura en el repositorio configurado.');
   }
 
@@ -139,7 +135,7 @@ async function callback(request, env) {
 
 async function apiMe(request, env) {
   const session = await requireSession(request, env);
-  return safeJson({
+  return json({
     ok: true,
     login: session.login,
     repo: session.repo,
@@ -151,7 +147,7 @@ async function apiConfig(request, env) {
   const session = await requireSession(request, env);
   const branch = env.GITHUB_BRANCH || 'main';
   const file = await getGithubFile(session, 'Web/remote-config.json', branch);
-  return safeJson({ ok: true, config: JSON.parse(base64ToUtf8(file.content)) }, 200, request, env);
+  return json({ ok: true, config: JSON.parse(base64ToUtf8(file.content)) }, 200, request, env);
 }
 
 async function apiPublish(request, env) {
@@ -162,17 +158,15 @@ async function apiPublish(request, env) {
   const imageBase64 = String(body.imageBase64 || '');
 
   if (!channel || !imageBase64) throw new Error('Falta canal o imagen.');
-  if (!/^[a-z0-9_-]+$/i.test(channel)) throw new Error('ID de canal invalido.');
-
-  if (imageBase64.length > 3_100_000) {
-    return safeJson({ ok: false, error: 'La imagen comprimida es demasiado grande. Usa una imagen de menos de ~2.2 MB.' }, 413, request, env);
+  if (!/^[a-z0-9_-]+$/i.test(channel)) throw new Error('ID de canal inválido.');
+  if (imageBase64.length > 3100000) {
+    return json({ ok: false, error: 'La imagen comprimida es demasiado grande.' }, 413, request, env);
   }
 
   const configFile = await getGithubFile(session, 'Web/remote-config.json', branch);
   const config = JSON.parse(base64ToUtf8(configFile.content));
-
   if (!config.channels || !(channel in config.channels)) {
-    return safeJson({ ok: false, error: 'El canal no existe en remote-config.json.' }, 400, request, env);
+    return json({ ok: false, error: 'El canal no existe en remote-config.json.' }, 400, request, env);
   }
 
   const slots = Number(config.slotsPerChannel || 8);
@@ -180,14 +174,14 @@ async function apiPublish(request, env) {
   const next = (current + 1) % slots;
   const imagePath = `Web/images/${channel}/slot-${next}.jpg`;
 
-  let existingImageSha = null;
+  let imageSha = null;
   try {
-    existingImageSha = (await getGithubFile(session, imagePath, branch)).sha;
+    imageSha = (await getGithubFile(session, imagePath, branch)).sha;
   } catch (err) {
     if (!String(err.message).includes('404')) throw err;
   }
 
-  await putGithubFile(session, imagePath, imageBase64, existingImageSha, branch, `HYPN: actualizar ${channel} slot ${next}`);
+  await putGithubFile(session, imagePath, imageBase64, imageSha, branch, `HYPN: actualizar ${channel} slot ${next}`);
 
   config.channels[channel] = next;
   config.version = Number(config.version || 0) + 1;
@@ -202,20 +196,18 @@ async function apiPublish(request, env) {
     `HYPN: publicar ${channel} -> slot ${next}`
   );
 
-  return safeJson({ ok: true, channel, slot: next, version: config.version }, 200, request, env);
+  return json({ ok: true, channel, slot: next, version: config.version }, 200, request, env);
 }
 
 async function requireSession(request, env) {
   requireEnv(env, ['SESSION_SECRET', 'PUBLIC_ORIGIN', 'ALLOWED_REPO']);
-
   const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ')) throw new Error('Sesion no encontrada. Inicia sesion con GitHub.');
+  if (!auth.startsWith('Bearer ')) throw new Error('Sesión no encontrada. Inicia sesión con GitHub.');
 
   const session = await decryptSession(auth.slice(7).trim(), env.SESSION_SECRET);
-  if (!session || !session.gh || !session.exp) throw new Error('Sesion invalida.');
-  if (Date.now() > session.exp) throw new Error('Sesion vencida. Inicia sesion de nuevo.');
-  if (session.repo !== env.ALLOWED_REPO) throw new Error('Repositorio de sesion no autorizado.');
-
+  if (!session || !session.gh || !session.exp) throw new Error('Sesión inválida.');
+  if (Date.now() > session.exp) throw new Error('Sesión vencida. Inicia sesión nuevamente.');
+  if (session.repo !== env.ALLOWED_REPO) throw new Error('Repositorio de sesión no autorizado.');
   return session;
 }
 
@@ -224,7 +216,6 @@ async function getGithubFile(session, path, branch) {
     `https://api.github.com/repos/${session.repo}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`,
     { headers: githubHeaders(session.gh) }
   );
-
   if (!res.ok) throw new Error(`GitHub ${res.status}: ${await safeMessage(res)}`);
   return await res.json();
 }
@@ -238,7 +229,6 @@ async function putGithubFile(session, path, contentBase64, sha, branch, message)
     headers: { ...githubHeaders(session.gh), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-
   if (!res.ok) throw new Error(`GitHub ${res.status}: ${await safeMessage(res)}`);
   return await res.json();
 }
@@ -267,61 +257,42 @@ async function safeMessage(res) {
   }
 }
 
+function requireEnv(env, names) {
+  for (const name of names) {
+    if (!env[name] || String(env[name]).trim() === '') {
+      throw new Error(`Falta variable/secreto del Worker: ${name}`);
+    }
+  }
+}
+
 function ensureAllowedReturn(returnUrl, publicOrigin) {
   const target = new URL(returnUrl);
   const allowed = new URL(publicOrigin);
   if (target.origin !== allowed.origin) throw new Error('return_url no autorizado.');
 }
 
-function requireEnv(env, names) {
-  for (const n of names) {
-    if (!env[n] || String(env[n]).trim() === '') {
-      throw new Error(`Falta variable/secreto del Worker: ${n}`);
-    }
-  }
-}
-
-function allowedOrigin(env) {
-  try {
-    if (!env || !env.PUBLIC_ORIGIN) return null;
-    return new URL(env.PUBLIC_ORIGIN).origin;
-  } catch {
-    return null;
-  }
-}
-
-function applyCors(response, request, env) {
+function cors(response, request, env) {
   try {
     const origin = request.headers.get('Origin');
-    const allowed = allowedOrigin(env);
+    if (!origin || !env.PUBLIC_ORIGIN) return response;
+    if (origin !== new URL(env.PUBLIC_ORIGIN).origin) return response;
 
-    if (!origin || !allowed || origin !== allowed) return response;
-
-    const headers = new Headers(response.headers);
-    headers.set('Access-Control-Allow-Origin', origin);
-    headers.set('Vary', 'Origin');
-    headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-    headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers
-    });
+    const h = new Headers(response.headers);
+    h.set('Access-Control-Allow-Origin', origin);
+    h.set('Vary', 'Origin');
+    h.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers: h });
   } catch {
     return response;
   }
 }
 
-function safeJson(data, status, request, env) {
-  const response = new Response(JSON.stringify(data), {
+function json(data, status, request, env) {
+  return cors(new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store'
-    }
-  });
-  return applyCors(response, request, env);
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
+  }), request, env);
 }
 
 async function signState(payload, secret) {
@@ -332,13 +303,11 @@ async function signState(payload, secret) {
 }
 
 async function verifyState(value, secret) {
-  const [part, sig] = value.split('.');
+  const [part, sig] = String(value).split('.');
   if (!part || !sig) return null;
-
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const ok = await crypto.subtle.verify('HMAC', key, base64UrlDecode(sig), encoder.encode(part));
   if (!ok) return null;
-
   return JSON.parse(decoder.decode(base64UrlDecode(part)));
 }
 
@@ -351,10 +320,10 @@ async function encryptSession(payload, secret) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await sessionKey(secret);
   const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(payload)));
-  const out = new Uint8Array(iv.length + cipher.byteLength);
-  out.set(iv, 0);
-  out.set(new Uint8Array(cipher), iv.length);
-  return base64UrlEncode(out);
+  const bytes = new Uint8Array(iv.length + cipher.byteLength);
+  bytes.set(iv, 0);
+  bytes.set(new Uint8Array(cipher), iv.length);
+  return base64UrlEncode(bytes);
 }
 
 async function decryptSession(token, secret) {
@@ -377,7 +346,7 @@ function base64UrlEncode(bytes) {
 }
 
 function base64UrlDecode(value) {
-  let b64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  let b64 = String(value).replace(/-/g, '+').replace(/_/g, '/');
   while (b64.length % 4) b64 += '=';
   const s = atob(b64);
   const out = new Uint8Array(s.length);
@@ -386,14 +355,14 @@ function base64UrlDecode(value) {
 }
 
 function base64ToUtf8(b64) {
-  const bytes = Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(String(b64).replace(/\n/g, '')), c => c.charCodeAt(0));
   return decoder.decode(bytes);
 }
 
 function utf8ToBase64(text) {
   const bytes = encoder.encode(text);
   let binary = '';
-  const chunk = 0x8000;
+  const chunk = 32768;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
   }
