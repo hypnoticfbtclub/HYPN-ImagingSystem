@@ -1,11 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "slotsPerChannel": 8,
   "channels": {
     "entrada": 0,
-    "eventos": 0,
+    "eventos": 1,
     "dj": 0,
     "vip": 0,
     "sauna": 0
-  }
+  },
+  "updatedAt": "2026-09-04T23:28:28.936Z"
 }
