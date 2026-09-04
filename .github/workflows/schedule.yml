@@ -1,0 +1,32 @@
+name: Apply scheduled HYPN images
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply schedule
+        id: apply
+        run: |
+          python scripts/apply_schedule.py | tee /tmp/result.txt
+          if grep -q "CHANGED=1" /tmp/result.txt; then
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Commit scheduled change
+        if: steps.apply.outputs.changed == '1'
+        run: |
+          git config user.name "HYPN Remote Image Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add Web/remote-config.json Web/schedule.json
+          git commit -m "HYPN: aplicar cambio programado"
+          git push

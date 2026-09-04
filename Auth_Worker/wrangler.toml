@@ -1,0 +1,14 @@
+name = "hypn-remote-image-auth"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+PUBLIC_ORIGIN = "https://hypnoticfbtclub.github.io"
+ALLOWED_REPO = "hypnoticfbtclub/HYPN-Remote-Images"
+GITHUB_BRANCH = "main"
+ALLOWED_USER = "hypnoticfbtclub"
+
+# Cargar como secretos en Cloudflare:
+# GITHUB_CLIENT_ID
+# GITHUB_CLIENT_SECRET
+# SESSION_SECRET
