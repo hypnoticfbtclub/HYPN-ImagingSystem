@@ -7,8 +7,8 @@ PUBLIC_ORIGIN = "https://hypnoticfbtclub.github.io"
 ALLOWED_REPO = "hypnoticfbtclub/HYPN-Remote-Images"
 GITHUB_BRANCH = "main"
 ALLOWED_USER = "hypnoticfbtclub"
+GITHUB_CLIENT_ID = "Ov23lipMntidMCKKZieK"
 
 # Cargar como secretos en Cloudflare:
-# GITHUB_CLIENT_ID
 # GITHUB_CLIENT_SECRET
 # SESSION_SECRET
