@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "slotsPerChannel": 8,
+  "channels": {
+    "entrada": 0,
+    "eventos": 0,
+    "dj": 0,
+    "vip": 0,
+    "sauna": 0
+  }
+}

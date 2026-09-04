@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>HYPN Remote Image System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">HYPNOTIC • VRCHAT</div>
+      <h1>Remote Image System</h1>
+      <p>Control remoto de carteles e imágenes del club.</p>
+    </div>
+    <div id="systemState" class="pill">SIN SESIÓN</div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="section-title">
+        <div>
+          <h2>Acceso administrativo</h2>
+          <p class="help">Inicia sesión con GitHub. La contraseña de GitHub nunca pasa por esta página.</p>
+        </div>
+      </div>
+
+      <div id="loggedOutBox">
+        <button id="loginBtn" class="primary" style="min-width:240px">INICIAR SESIÓN CON GITHUB</button>
+        <p class="help" style="margin-top:12px">GitHub te pedirá autorizar el acceso y luego volverás automáticamente a este panel.</p>
+      </div>
+
+      <div id="loggedInBox" style="display:none">
+        <div class="stats">
+          <div><span>Cuenta</span><strong id="loginStat">—</strong></div>
+          <div><span>Repositorio</span><strong id="repoStat" style="font-size:16px">—</strong></div>
+          <div><span>Sesión</span><strong id="sessionStat" style="font-size:16px">ACTIVA</strong></div>
+        </div>
+        <div class="row">
+          <button id="logoutBtn" class="ghost">CERRAR SESIÓN</button>
+          <button id="refreshBtn" class="ghost">RECARGAR ESTADO</button>
+        </div>
+      </div>
+
+      <div id="connectionMsg" class="msg"></div>
+    </section>
+
+    <section id="adminArea" style="display:none">
+      <section class="card">
+        <div class="section-title">
+          <div>
+            <h2>Pantallas / Canales</h2>
+            <p class="help">Un canal puede alimentar varias TVs dentro de Unity.</p>
+          </div>
+        </div>
+        <div id="channelGrid" class="channel-grid"></div>
+      </section>
+
+      <section class="card upload-card">
+        <h2>Publicar imagen</h2>
+        <div class="grid">
+          <label>Canal
+            <select id="channelSelect"></select>
+          </label>
+          <label>Imagen
+            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+        </div>
+        <div class="preview-wrap">
+          <img id="preview" alt="Vista previa">
+          <div id="previewEmpty">Selecciona una imagen para ver la vista previa.</div>
+        </div>
+        <div class="row">
+          <button id="publishBtn" class="primary">PUBLICAR EN VRCHAT</button>
+        </div>
+        <div id="publishMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <h2>Estado remoto</h2>
+        <div class="stats">
+          <div><span>Versión</span><strong id="versionStat">—</strong></div>
+          <div><span>Slots/canal</span><strong id="slotsStat">—</strong></div>
+          <div><span>Canales</span><strong id="channelsStat">—</strong></div>
+        </div>
+        <pre id="rawConfig"></pre>
+      </section>
+    </section>
+  </main>
+
+  <footer>HYPN Remote Image System V1.1.0 • GitHub Pages + GitHub Login + VRChat UdonSharp</footer>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
