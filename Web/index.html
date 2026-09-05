@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Remote Image System</title>
-  <link rel="stylesheet" href="styles.css?v=141">
+  <link rel="stylesheet" href="styles.css?v=142">
 </head>
 <body>
   <header class="topbar">
@@ -60,7 +60,7 @@
         <div class="section-title">
           <div>
             <h2>Galería de carteles del club</h2>
-            <p class="help">Cada cartel tiene su propio cuadro de carga. Selecciona el área y publica directamente desde la tarjeta correspondiente.</p>
+            <p class="help">Cada cartel tiene su propio cuadro de carga. ✓ verde significa APROBADA; ✕ rojo significa AÚN NO APROBADA.</p>
           </div>
         </div>
         <div id="ownerTabs" class="tabs"></div>
@@ -133,7 +133,7 @@
         <div class="section-title">
           <div>
             <h2>Mis carteles autorizados</h2>
-            <p class="help">Cada tarjeta tiene su propio cargador. Ahí mismo verás si la última imagen está pendiente, aprobada o rechazada.</p>
+            <p class="help">Cada tarjeta tiene su propio cargador. ✓ verde = aprobada; ✕ rojo = todavía no aprobada por el OWNER.</p>
           </div>
           <button id="refreshMineBtn" class="ghost small">RECARGAR</button>
         </div>
@@ -150,8 +150,9 @@
     </section>
   </main>
 
-  <footer>HYPN Remote Image System V1.4.1 • carga individual por cartel • aprobación OWNER</footer>
-  <script src="config.js?v=141"></script>
-  <script src="app.js?v=141"></script>
+  <footer>HYPN Remote Image System V1.4.2 • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER</footer>
+  <script src="config.js?v=142"></script>
+  <script src="app.js?v=142"></script>
+  <script src="approval-status-v142.js?v=142"></script>
 </body>
 </html>
