@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Imaging System</title>
-  <link rel="stylesheet" href="styles.css?v=1411">
+  <link rel="stylesheet" href="styles.css?v=1412">
 </head>
 <body>
   <header class="topbar">
@@ -65,7 +65,7 @@
 
       <section class="card">
         <div class="section-title">
-          <div><h2>Solicitudes pendientes de colaboradores</h2><p class="help">Las imágenes de colaboradores no llegan a VRChat hasta que el ADMIN pulse APROBAR.</p></div>
+          <div><h2>Solicitudes pendientes de colaboradores</h2><p class="help">Las imágenes de colaboradores no llegan a VRChat hasta que el ADMIN pulse APROBAR. El panel avisa cuando aparece una solicitud nueva.</p></div>
           <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
         </div>
         <div id="pendingList" class="approval-grid"></div>
@@ -112,18 +112,18 @@
 
     <section id="collabArea" style="display:none">
       <section class="card">
-        <div class="section-title"><div><h2>Mis carteles autorizados</h2><p class="help">Tu rol personalizado aparece arriba en tu sesión. ✓ verde = aprobada; ✕ rojo = todavía no aprobada por el ADMIN.</p></div><button id="refreshMineBtn" class="ghost small">RECARGAR</button></div>
+        <div class="section-title"><div><h2>Mis carteles autorizados</h2><p class="help">Estados de tus solicitudes: ⏳ Pendiente = amarillo • ✓ Aprobado = verde • ✕ Rechazado / No aprobado = rojo. Al enviar una imagen recibirás una confirmación inmediata.</p></div><button id="refreshMineBtn" class="ghost small">RECARGAR</button></div>
         <div id="collabTabs" class="tabs"></div><div id="collabPosterGrid" class="poster-grid"></div><div id="collabSubmitMsg" class="msg"></div>
       </section>
       <section class="card"><h2>Mis solicitudes</h2><div id="mineList" class="history-list"></div><div id="mineMsg" class="msg"></div></section>
     </section>
   </main>
 
-  <footer>HYPN Imaging System V1.4.11 • roles personalizados • ADMIN publica directo</footer>
-  <script src="config.js?v=1411"></script>
-  <script src="app.js?v=1411"></script>
-  <script src="user-admin-v149.js?v=1411"></script>
-  <script src="custom-role-v1411.js?v=1411"></script>
-  <script src="approval-status-v149.js?v=1411"></script>
+  <footer>HYPN Imaging System V1.4.12 • Pendiente = amarillo • Aprobado = verde • Rechazado/No aprobado = rojo</footer>
+  <script src="config.js?v=1412"></script>
+  <script src="app.js?v=1412"></script>
+  <script src="user-admin-v149.js?v=1412"></script>
+  <script src="custom-role-v1411.js?v=1412"></script>
+  <script src="collab-request-status-v1412.js?v=1412"></script>
 </body>
 </html>
