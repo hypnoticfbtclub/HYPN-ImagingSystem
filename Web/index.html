@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Remote Image System</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=141">
 </head>
 <body>
   <header class="topbar">
@@ -31,16 +31,11 @@
           <p class="help">Administración completa, aprobación y publicación directa.</p>
           <button id="loginBtn" class="primary full">INICIAR SESIÓN CON GITHUB</button>
         </div>
-
         <div class="login-panel">
           <h3>COLABORADOR</h3>
-          <p class="help">Puede subir imágenes únicamente a los carteles autorizados. Todo queda pendiente hasta aprobación.</p>
-          <label>Usuario
-            <input id="collabUser" autocomplete="username" placeholder="usuario">
-          </label>
-          <label>Contraseña
-            <input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña">
-          </label>
+          <p class="help">Sube imágenes únicamente a tus carteles autorizados. Todo queda pendiente hasta aprobación.</p>
+          <label>Usuario<input id="collabUser" autocomplete="username" placeholder="usuario"></label>
+          <label>Contraseña<input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña"></label>
           <button id="collabLoginBtn" class="ghost full">ENTRAR COMO COLABORADOR</button>
           <div id="collabLoginMsg" class="msg"></div>
         </div>
@@ -64,39 +59,20 @@
       <section class="card">
         <div class="section-title">
           <div>
-            <h2>15 carteles del club</h2>
-            <p class="help">Cada cartel es independiente. El número mostrado es su slot remoto activo.</p>
+            <h2>Galería de carteles del club</h2>
+            <p class="help">Cada cartel tiene su propio cuadro de carga. Selecciona el área y publica directamente desde la tarjeta correspondiente.</p>
           </div>
         </div>
-        <div id="posterGroups"></div>
-      </section>
-
-      <section class="card upload-card">
-        <h2>Publicar directamente como OWNER</h2>
-        <p class="help">Esta opción no requiere aprobación. El cambio se publica inmediatamente en GitHub Pages y VRChat lo detecta en la siguiente revisión.</p>
-        <div class="grid">
-          <label>Cartel
-            <select id="ownerPosterSelect"></select>
-          </label>
-          <label>Imagen
-            <input id="ownerFileInput" type="file" accept="image/jpeg,image/png,image/webp">
-          </label>
-        </div>
-        <div class="preview-wrap">
-          <img id="ownerPreview" alt="Vista previa">
-          <div id="ownerPreviewEmpty">Selecciona una imagen.</div>
-        </div>
-        <div class="row">
-          <button id="ownerPublishBtn" class="primary">PUBLICAR AHORA</button>
-        </div>
-        <div id="ownerPublishMsg" class="msg"></div>
+        <div id="ownerTabs" class="tabs"></div>
+        <div id="ownerPosterGrid" class="poster-grid"></div>
+        <div id="ownerGalleryMsg" class="msg"></div>
       </section>
 
       <section class="card">
         <div class="section-title">
           <div>
             <h2>Solicitudes pendientes</h2>
-            <p class="help">Nada de esta sección llega a VRChat hasta que pulses APROBAR.</p>
+            <p class="help">Nada llega a VRChat hasta que pulses APROBAR.</p>
           </div>
           <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
         </div>
@@ -108,7 +84,7 @@
         <div class="section-title">
           <div>
             <h2>Base de colaboradores</h2>
-            <p class="help">Usuarios, contraseñas y solicitudes se guardan en Cloudflare D1. Las contraseñas se almacenan con hash.</p>
+            <p class="help">Usuarios, contraseñas y solicitudes se guardan en Cloudflare D1.</p>
           </div>
           <div id="dbPill" class="pill">COMPROBANDO</div>
         </div>
@@ -122,12 +98,8 @@
       <section class="card">
         <h2>Crear usuario colaborador</h2>
         <div class="grid">
-          <label>Usuario
-            <input id="newUsername" placeholder="ej. dj_invitado">
-          </label>
-          <label>Contraseña inicial
-            <input id="newPassword" type="password" placeholder="mínimo 8 caracteres">
-          </label>
+          <label>Usuario<input id="newUsername" placeholder="ej. dj_invitado"></label>
+          <label>Contraseña inicial<input id="newPassword" type="password" placeholder="mínimo 8 caracteres"></label>
         </div>
         <div class="permission-box">
           <strong>Permisos</strong>
@@ -135,9 +107,7 @@
           <label class="check"><input type="checkbox" id="permColab"> 4 carteles — Colaboradores</label>
           <label class="check"><input type="checkbox" id="permFuera"> 5 carteles — Fuera del Club</label>
         </div>
-        <div class="row">
-          <button id="createUserBtn" class="primary">CREAR USUARIO</button>
-        </div>
+        <div class="row"><button id="createUserBtn" class="primary">CREAR USUARIO</button></div>
         <div id="userCreateMsg" class="msg"></div>
       </section>
 
@@ -160,47 +130,28 @@
 
     <section id="collabArea" style="display:none">
       <section class="card">
-        <h2>Mis carteles autorizados</h2>
-        <div id="collabPosterGrid" class="channel-grid"></div>
-      </section>
-
-      <section class="card upload-card">
-        <h2>Enviar imagen para aprobación</h2>
-        <p class="help">La imagen NO se publica inmediatamente. Primero queda en PENDIENTE para revisión del OWNER.</p>
-        <div class="grid">
-          <label>Cartel
-            <select id="collabPosterSelect"></select>
-          </label>
-          <label>Imagen
-            <input id="collabFileInput" type="file" accept="image/jpeg,image/png,image/webp">
-          </label>
+        <div class="section-title">
+          <div>
+            <h2>Mis carteles autorizados</h2>
+            <p class="help">Cada tarjeta tiene su propio cargador. Ahí mismo verás si la última imagen está pendiente, aprobada o rechazada.</p>
+          </div>
+          <button id="refreshMineBtn" class="ghost small">RECARGAR</button>
         </div>
-        <div class="preview-wrap small-preview">
-          <img id="collabPreview" alt="Vista previa">
-          <div id="collabPreviewEmpty">Selecciona una imagen.</div>
-        </div>
-        <div class="row">
-          <button id="submitApprovalBtn" class="primary">ENVIAR PARA APROBACIÓN</button>
-        </div>
+        <div id="collabTabs" class="tabs"></div>
+        <div id="collabPosterGrid" class="poster-grid"></div>
         <div id="collabSubmitMsg" class="msg"></div>
       </section>
 
       <section class="card">
-        <div class="section-title">
-          <div>
-            <h2>Mis solicitudes</h2>
-            <p class="help">PENDIENTE, APROBADA o RECHAZADA.</p>
-          </div>
-          <button id="refreshMineBtn" class="ghost small">RECARGAR</button>
-        </div>
+        <h2>Mis solicitudes</h2>
         <div id="mineList" class="history-list"></div>
         <div id="mineMsg" class="msg"></div>
       </section>
     </section>
   </main>
 
-  <footer>HYPN Remote Image System V1.3.0 • 15 carteles • Aprobación OWNER • GitHub Pages + Cloudflare</footer>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <footer>HYPN Remote Image System V1.4.1 • carga individual por cartel • aprobación OWNER</footer>
+  <script src="config.js?v=141"></script>
+  <script src="app.js?v=141"></script>
 </body>
 </html>
