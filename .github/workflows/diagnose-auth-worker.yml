@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Health check
         run: |
-          echo "=== /health ==="
+          echo "=== /health (esperado 1.4.10) ==="
           curl -sS -i --max-time 20 https://hypn-remote-image-auth.hypnoticfbtclub.workers.dev/health || true
       - name: Login endpoint check
         run: |
