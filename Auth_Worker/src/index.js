@@ -1,6 +1,6 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-const VERSION = '1.3.0';
+const VERSION = '1.3.1';
 
 const POSTERS = [
   { id: 'salon_01', label: 'Salón Principal 1', group: 'salon_principal' },
@@ -219,434 +219,318 @@ async function collabLogin(request, env) {
   return json({
     ok: true,
     session,
-    role: 'collab',
-    login: user.username,
-    permissions
+    user: { username: user.username, permissions }
   }, 200, request, env);
 }
 
 async function apiMe(request, env) {
-  const session = await requireAnySession(request, env);
-  const role = session.role || (session.gh ? 'owner' : 'collab');
+  const session = await requireSession(request, env);
   return json({
     ok: true,
-    role,
+    role: session.role,
     login: session.login,
-    repo: session.repo || env.ALLOWED_REPO || null,
-    permissions: role === 'owner' ? POSTER_IDS : sanitizePermissions(session.permissions),
-    databaseReady: !!env.HYPN_DB,
-    expiresAt: new Date(session.exp).toISOString()
+    repo: session.repo || env.ALLOWED_REPO,
+    permissions: session.permissions || []
   }, 200, request, env);
 }
 
 async function apiConfig(request, env) {
-  const session = await requireAnySession(request, env);
-  const config = await loadRemoteConfig(session, env);
-  return json({ ok: true, config }, 200, request, env);
+  const session = await requireSession(request, env);
+  const branch = env.GITHUB_BRANCH || 'main';
+  const repo = session.repo || env.ALLOWED_REPO;
+  if (session.role !== 'owner') {
+    return json({
+      ok: true,
+      repo,
+      branch,
+      posters: POSTERS,
+      active: {}
+    }, 200, request, env);
+  }
+
+  const file = await getGithubFile(session, 'Web/remote-config.json', branch);
+  const text = decoder.decode(base64ToBytes(file.content.replace(/\n/g, '')));
+  const config = JSON.parse(text);
+  return json({
+    ok: true,
+    repo,
+    branch,
+    posters: POSTERS,
+    active: config.active || {},
+    revision: config.revision || 0
+  }, 200, request, env);
 }
 
 async function apiPublish(request, env) {
-  const owner = await requireOwnerSession(request, env);
+  const session = await requireOwner(request, env);
   const body = await request.json();
-  const poster = String(body.poster || body.channel || '').trim();
+  const posterId = String(body.posterId || '');
   const imageBase64 = String(body.imageBase64 || '');
-  const result = await publishPoster(owner, env, poster, imageBase64);
-  return json({ ok: true, ...result }, 200, request, env);
+  const extension = normalizeExtension(body.extension);
+  const mime = String(body.mime || '').toLowerCase();
+
+  if (!POSTER_SET.has(posterId)) throw new Error('Cartel no válido.');
+  validateImagePayload(imageBase64, extension, mime);
+
+  const branch = env.GITHUB_BRANCH || 'main';
+  const slot = await publishPosterImage(session, posterId, imageBase64, extension, branch, `HYPN: publicar ${posterId}`);
+
+  return json({ ok: true, posterId, slot }, 200, request, env);
 }
 
 async function collabSubmit(request, env) {
-  const session = await requireCollabSession(request, env);
+  const session = await requireCollaborator(request, env);
   const db = requireDb(env);
   const body = await request.json();
-  const poster = String(body.poster || '').trim();
+  const posterId = String(body.posterId || '');
   const imageBase64 = String(body.imageBase64 || '');
+  const extension = normalizeExtension(body.extension);
+  const mime = String(body.mime || '').toLowerCase();
 
-  if (!POSTER_SET.has(poster)) throw new Error('Cartel inválido.');
-  const permissions = sanitizePermissions(session.permissions);
-  if (!permissions.includes(poster)) throw new Error('No tienes permiso para enviar imágenes a ese cartel.');
-  if (!imageBase64) throw new Error('Falta la imagen.');
-  if (imageBase64.length > 900000) {
-    throw new Error('La imagen pendiente es demasiado grande. Usa una imagen de menos de ~650 KB.');
+  if (!POSTER_SET.has(posterId)) throw new Error('Cartel no válido.');
+  if (!session.permissions || !session.permissions.includes(posterId)) {
+    throw new Error('No tienes permiso para este cartel.');
   }
+  validateImagePayload(imageBase64, extension, mime);
 
-  const pendingCount = await db.prepare(
-    "SELECT COUNT(*) AS total FROM submissions WHERE user_id=? AND status='pending'"
-  ).bind(session.userId).first();
-  if (pendingCount && Number(pendingCount.total) >= 10) {
-    throw new Error('Tienes 10 solicitudes pendientes. Espera a que el OWNER revise alguna.');
-  }
-
-  const now = new Date().toISOString();
+  const now = Date.now();
   const result = await db.prepare(
-    `INSERT INTO submissions
-      (user_id, username, poster_id, image_base64, status, created_at)
-     VALUES (?, ?, ?, ?, 'pending', ?)`
-  ).bind(session.userId, session.login, poster, imageBase64, now).run();
+    `INSERT INTO submissions (user_id, poster_id, image_base64, extension, mime, status, created_at)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?)`
+  ).bind(session.userId, posterId, imageBase64, extension, mime, now).run();
 
   return json({
     ok: true,
-    submissionId: result.meta?.last_row_id || null,
-    status: 'pending',
-    poster
+    submissionId: Number(result.meta.last_row_id),
+    status: 'pending'
   }, 200, request, env);
 }
 
 async function collabSubmissions(request, env) {
-  const session = await requireCollabSession(request, env);
+  const session = await requireCollaborator(request, env);
   const db = requireDb(env);
-  const result = await db.prepare(
-    `SELECT id, poster_id, status, created_at, reviewed_at, reviewed_by, reject_reason, published_slot
-     FROM submissions
-     WHERE user_id=?
-     ORDER BY id DESC
-     LIMIT 30`
+  const rows = await db.prepare(
+    `SELECT id, poster_id, status, created_at, reviewed_at, review_note
+     FROM submissions WHERE user_id=? ORDER BY id DESC LIMIT 50`
   ).bind(session.userId).all();
-
-  return json({ ok: true, submissions: result.results || [] }, 200, request, env);
+  return json({ ok: true, submissions: rows.results || [] }, 200, request, env);
 }
 
 async function ownerDbStatus(request, env) {
-  await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   if (!env.HYPN_DB) {
     return json({ ok: true, bound: false, initialized: false }, 200, request, env);
   }
 
-  let initialized = false;
-  let users = 0;
-  let pending = 0;
   try {
-    const u = await env.HYPN_DB.prepare('SELECT COUNT(*) AS total FROM users').first();
-    const p = await env.HYPN_DB.prepare("SELECT COUNT(*) AS total FROM submissions WHERE status='pending'").first();
-    users = Number(u?.total || 0);
-    pending = Number(p?.total || 0);
-    initialized = true;
-  } catch {
-    initialized = false;
+    const row = await env.HYPN_DB.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+    ).first();
+    return json({ ok: true, bound: true, initialized: !!row }, 200, request, env);
+  } catch (e) {
+    return json({ ok: true, bound: true, initialized: false, error: String(e.message || e) }, 200, request, env);
   }
-
-  return json({ ok: true, bound: true, initialized, users, pending }, 200, request, env);
 }
 
 async function ownerDbInit(request, env) {
-  await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   const db = requireDb(env);
-  await createSchema(db);
+  await ensureSchema(db);
   return json({ ok: true, initialized: true }, 200, request, env);
 }
 
 async function ownerUsers(request, env) {
-  await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   const db = requireDb(env);
-  const result = await db.prepare(
-    `SELECT id, username, permissions, active, created_at, updated_at
-     FROM users ORDER BY lower(username) ASC`
+  await ensureSchema(db);
+  const rows = await db.prepare(
+    'SELECT id, username, active, permissions, created_at, updated_at FROM users ORDER BY username COLLATE NOCASE'
   ).all();
-
-  const users = (result.results || []).map(u => ({
-    ...u,
-    active: Number(u.active) === 1,
-    permissions: parsePermissions(u.permissions)
-  }));
-  return json({ ok: true, users }, 200, request, env);
+  return json({ ok: true, users: rows.results || [] }, 200, request, env);
 }
 
 async function ownerCreateUser(request, env) {
-  const owner = await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   const db = requireDb(env);
+  await ensureSchema(db);
   const body = await request.json();
   const username = normalizeUsername(body.username);
   const password = String(body.password || '');
   const permissions = sanitizePermissions(body.permissions);
 
-  validateUsername(username);
-  validatePassword(password);
-  if (permissions.length === 0) throw new Error('Selecciona al menos un cartel permitido.');
+  if (!username || username.length < 3) throw new Error('El usuario debe tener al menos 3 caracteres.');
+  if (password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+  if (!permissions.length) throw new Error('Selecciona al menos un cartel permitido.');
 
-  const existing = await db.prepare('SELECT id FROM users WHERE lower(username)=lower(?) LIMIT 1').bind(username).first();
-  if (existing) throw new Error('Ese usuario ya existe.');
-
-  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
-  const salt = bytesToBase64(saltBytes);
-  const passwordHash = await hashPassword(password, saltBytes);
-  const now = new Date().toISOString();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await hashPassword(password, salt);
+  const now = Date.now();
 
   await db.prepare(
     `INSERT INTO users (username, password_hash, salt, permissions, active, created_at, updated_at)
      VALUES (?, ?, ?, ?, 1, ?, ?)`
-  ).bind(username, passwordHash, salt, JSON.stringify(permissions), now, now).run();
+  ).bind(
+    username,
+    hash,
+    bytesToBase64(salt),
+    JSON.stringify(permissions),
+    now,
+    now
+  ).run();
 
-  await writeAudit(db, owner.login, 'user_create', username);
   return json({ ok: true, username }, 200, request, env);
 }
 
 async function ownerUpdateUser(request, env) {
-  const owner = await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   const db = requireDb(env);
+  await ensureSchema(db);
   const body = await request.json();
-  const id = Number(body.id || 0);
-  if (!id) throw new Error('Usuario inválido.');
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('ID de usuario inválido.');
 
-  const current = await db.prepare('SELECT id, username FROM users WHERE id=?').bind(id).first();
+  const current = await db.prepare('SELECT * FROM users WHERE id=?').bind(id).first();
   if (!current) throw new Error('Usuario no encontrado.');
 
-  const now = new Date().toISOString();
+  const active = body.active === false ? 0 : 1;
+  const permissions = sanitizePermissions(body.permissions || parsePermissions(current.permissions));
+  const password = String(body.password || '');
+  const now = Date.now();
 
-  if (typeof body.active === 'boolean') {
-    await db.prepare('UPDATE users SET active=?, updated_at=? WHERE id=?')
-      .bind(body.active ? 1 : 0, now, id).run();
+  if (password) {
+    if (password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await hashPassword(password, salt);
+    await db.prepare(
+      `UPDATE users SET password_hash=?, salt=?, permissions=?, active=?, updated_at=? WHERE id=?`
+    ).bind(hash, bytesToBase64(salt), JSON.stringify(permissions), active, now, id).run();
+  } else {
+    await db.prepare(
+      `UPDATE users SET permissions=?, active=?, updated_at=? WHERE id=?`
+    ).bind(JSON.stringify(permissions), active, now, id).run();
   }
 
-  if (Array.isArray(body.permissions)) {
-    const permissions = sanitizePermissions(body.permissions);
-    if (permissions.length === 0) throw new Error('El usuario debe conservar al menos un cartel permitido.');
-    await db.prepare('UPDATE users SET permissions=?, updated_at=? WHERE id=?')
-      .bind(JSON.stringify(permissions), now, id).run();
-  }
-
-  if (body.password !== undefined && String(body.password) !== '') {
-    const password = String(body.password);
-    validatePassword(password);
-    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
-    const salt = bytesToBase64(saltBytes);
-    const passwordHash = await hashPassword(password, saltBytes);
-    await db.prepare('UPDATE users SET password_hash=?, salt=?, updated_at=? WHERE id=?')
-      .bind(passwordHash, salt, now, id).run();
-  }
-
-  await writeAudit(db, owner.login, 'user_update', current.username);
-  return json({ ok: true, id }, 200, request, env);
+  return json({ ok: true }, 200, request, env);
 }
 
 async function ownerSubmissions(request, env) {
-  await requireOwnerSession(request, env);
+  await requireOwner(request, env);
   const db = requireDb(env);
-  const url = new URL(request.url);
-  const status = String(url.searchParams.get('status') || 'pending');
-  const allowedStatus = ['pending', 'approved', 'rejected', 'all'].includes(status) ? status : 'pending';
-
-  let sql = `SELECT id, user_id, username, poster_id, image_base64, status, created_at,
-                    reviewed_at, reviewed_by, reject_reason, published_slot
-             FROM submissions`;
-  const binds = [];
-  if (allowedStatus !== 'all') {
-    sql += ' WHERE status=?';
-    binds.push(allowedStatus);
-  }
-  sql += ' ORDER BY id DESC LIMIT 30';
-
-  const stmt = db.prepare(sql);
-  const result = binds.length ? await stmt.bind(...binds).all() : await stmt.all();
-  return json({ ok: true, submissions: result.results || [] }, 200, request, env);
+  await ensureSchema(db);
+  const rows = await db.prepare(
+    `SELECT s.id, s.poster_id, s.extension, s.mime, s.status, s.created_at,
+            s.reviewed_at, s.review_note, u.username
+     FROM submissions s JOIN users u ON u.id=s.user_id
+     WHERE s.status='pending'
+     ORDER BY s.id ASC LIMIT 100`
+  ).all();
+  return json({ ok: true, submissions: rows.results || [] }, 200, request, env);
 }
 
 async function ownerApprove(request, env) {
-  const owner = await requireOwnerSession(request, env);
+  const session = await requireOwner(request, env);
   const db = requireDb(env);
+  await ensureSchema(db);
   const body = await request.json();
-  const id = Number(body.id || 0);
-  if (!id) throw new Error('Solicitud inválida.');
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('Solicitud inválida.');
 
-  const submission = await db.prepare(
-    `SELECT id, username, poster_id, image_base64, status
-     FROM submissions WHERE id=? LIMIT 1`
+  const sub = await db.prepare(
+    `SELECT s.*, u.username FROM submissions s JOIN users u ON u.id=s.user_id WHERE s.id=? LIMIT 1`
   ).bind(id).first();
 
-  if (!submission) throw new Error('Solicitud no encontrada.');
-  if (submission.status !== 'pending') throw new Error('La solicitud ya fue revisada.');
+  if (!sub) throw new Error('Solicitud no encontrada.');
+  if (sub.status !== 'pending') throw new Error('Esta solicitud ya fue revisada.');
 
-  const published = await publishPoster(owner, env, submission.poster_id, submission.image_base64);
-  const now = new Date().toISOString();
+  const branch = env.GITHUB_BRANCH || 'main';
+  const slot = await publishPosterImage(
+    session,
+    sub.poster_id,
+    sub.image_base64,
+    sub.extension,
+    branch,
+    `HYPN: aprobar ${sub.poster_id} de ${sub.username}`
+  );
 
   await db.prepare(
-    `UPDATE submissions
-     SET status='approved', reviewed_at=?, reviewed_by=?, published_slot=?, image_base64=NULL
-     WHERE id=?`
-  ).bind(now, owner.login, published.slot, id).run();
+    `UPDATE submissions SET status='approved', reviewed_at=?, reviewed_by=?, review_note=? WHERE id=?`
+  ).bind(Date.now(), session.login, String(body.note || ''), id).run();
 
-  await writeAudit(db, owner.login, 'submission_approve', String(id));
-  return json({ ok: true, id, poster: submission.poster_id, slot: published.slot }, 200, request, env);
+  return json({ ok: true, slot }, 200, request, env);
 }
 
 async function ownerReject(request, env) {
-  const owner = await requireOwnerSession(request, env);
+  const session = await requireOwner(request, env);
   const db = requireDb(env);
+  await ensureSchema(db);
   const body = await request.json();
-  const id = Number(body.id || 0);
-  const reason = String(body.reason || '').trim().slice(0, 250);
-  if (!id) throw new Error('Solicitud inválida.');
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('Solicitud inválida.');
 
-  const submission = await db.prepare('SELECT status FROM submissions WHERE id=?').bind(id).first();
-  if (!submission) throw new Error('Solicitud no encontrada.');
-  if (submission.status !== 'pending') throw new Error('La solicitud ya fue revisada.');
+  const current = await db.prepare('SELECT id, status FROM submissions WHERE id=?').bind(id).first();
+  if (!current) throw new Error('Solicitud no encontrada.');
+  if (current.status !== 'pending') throw new Error('Esta solicitud ya fue revisada.');
 
-  const now = new Date().toISOString();
   await db.prepare(
-    `UPDATE submissions
-     SET status='rejected', reviewed_at=?, reviewed_by=?, reject_reason=?, image_base64=NULL
-     WHERE id=?`
-  ).bind(now, owner.login, reason, id).run();
+    `UPDATE submissions SET status='rejected', reviewed_at=?, reviewed_by=?, review_note=? WHERE id=?`
+  ).bind(Date.now(), session.login, String(body.note || ''), id).run();
 
-  await writeAudit(db, owner.login, 'submission_reject', String(id));
-  return json({ ok: true, id }, 200, request, env);
+  return json({ ok: true }, 200, request, env);
 }
 
-async function publishPoster(owner, env, poster, imageBase64) {
-  if (!POSTER_SET.has(poster)) throw new Error('Cartel inválido.');
-  if (!imageBase64) throw new Error('Falta la imagen.');
-  if (imageBase64.length > 3100000) throw new Error('La imagen comprimida es demasiado grande.');
+async function publishPosterImage(session, posterId, imageBase64, extension, branch, messagePrefix) {
+  const configPath = 'Web/remote-config.json';
+  const file = await getGithubFile(session, configPath, branch);
+  const configText = decoder.decode(base64ToBytes(file.content.replace(/\n/g, '')));
+  const config = JSON.parse(configText);
+  config.active = config.active || {};
+  const current = Number(config.active[posterId] || 0);
+  const nextSlot = (current + 1) % 3;
 
-  const branch = env.GITHUB_BRANCH || 'main';
-  const configFile = await getGithubFile(owner, 'Web/remote-config.json', branch);
-  const config = JSON.parse(base64ToUtf8(configFile.content));
-
-  if (!config.channels || !(poster in config.channels)) {
-    throw new Error('El cartel no existe en remote-config.json.');
-  }
-
-  const slots = Number(config.slotsPerChannel || 8);
-  const current = Number(config.channels[poster] || 0);
-  const next = (current + 1) % slots;
-  const imagePath = `Web/images/${poster}/slot-${next}.jpg`;
-
+  const imagePath = `Web/images/${posterId}/slot-${nextSlot}.${extension}`;
   let imageSha = null;
   try {
-    imageSha = (await getGithubFile(owner, imagePath, branch)).sha;
-  } catch (err) {
-    if (!String(err.message).includes('404')) throw err;
-  }
+    const currentImage = await getGithubFile(session, imagePath, branch);
+    imageSha = currentImage.sha;
+  } catch {}
 
-  await putGithubFile(owner, imagePath, imageBase64, imageSha, branch, `HYPN: actualizar ${poster} slot ${next}`);
+  await putGithubFile(session, imagePath, imageBase64, imageSha, branch, `${messagePrefix} -> slot ${nextSlot}`);
 
-  config.channels[poster] = next;
-  config.version = Number(config.version || 0) + 1;
+  config.active[posterId] = nextSlot;
+  config.revision = Number(config.revision || 0) + 1;
   config.updatedAt = new Date().toISOString();
 
-  await putGithubFile(
-    owner,
-    'Web/remote-config.json',
-    utf8ToBase64(JSON.stringify(config, null, 2) + '\n'),
-    configFile.sha,
-    branch,
-    `HYPN: publicar ${poster} -> slot ${next}`
-  );
-
-  return { poster, slot: next, version: config.version };
+  const configB64 = bytesToBase64(encoder.encode(JSON.stringify(config, null, 2) + '\n'));
+  await putGithubFile(session, configPath, configB64, file.sha, branch, `${messagePrefix}: activar slot ${nextSlot}`);
+  return nextSlot;
 }
 
-async function loadRemoteConfig(session, env) {
-  const branch = env.GITHUB_BRANCH || 'main';
-  if (session.gh) {
-    const file = await getGithubFile(session, 'Web/remote-config.json', branch);
-    return JSON.parse(base64ToUtf8(file.content));
-  }
+function validateImagePayload(imageBase64, extension, mime) {
+  if (!imageBase64) throw new Error('Selecciona una imagen.');
+  if (extension === 'jpg' && mime && mime !== 'image/jpeg') throw new Error('La imagen JPG tiene un MIME inválido.');
+  if (extension === 'png' && mime && mime !== 'image/png') throw new Error('La imagen PNG tiene un MIME inválido.');
 
-  const raw = `https://raw.githubusercontent.com/${env.ALLOWED_REPO}/${encodeURIComponent(branch)}/Web/remote-config.json`;
-  const res = await fetch(raw, { headers: { 'User-Agent': 'HYPN-Remote-Image-System/' + VERSION } });
-  if (!res.ok) throw new Error('No se pudo leer la configuración remota.');
-  return await res.json();
+  const estimatedBytes = Math.floor(imageBase64.length * 3 / 4);
+  if (estimatedBytes > 5 * 1024 * 1024) throw new Error('La imagen supera 5 MB.');
 }
 
-async function requireAnySession(request, env) {
-  requireEnv(env, ['SESSION_SECRET']);
-  const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ')) throw new Error('Sesión no encontrada.');
-  const session = await decryptSession(auth.slice(7).trim(), env.SESSION_SECRET);
-  if (!session || !session.exp || !session.login) throw new Error('Sesión inválida.');
-  if (Date.now() > session.exp) throw new Error('Sesión vencida. Inicia sesión nuevamente.');
-  return session;
-}
-
-async function requireOwnerSession(request, env) {
-  const session = await requireAnySession(request, env);
-  const role = session.role || (session.gh ? 'owner' : 'collab');
-  if (role !== 'owner' || !session.gh) throw new Error('Esta acción requiere acceso OWNER.');
-  if (session.repo !== env.ALLOWED_REPO) throw new Error('Repositorio de sesión no autorizado.');
-  return session;
-}
-
-async function requireCollabSession(request, env) {
-  const session = await requireAnySession(request, env);
-  if (session.role !== 'collab' || !session.userId) throw new Error('Esta acción requiere una cuenta de colaborador.');
-  return session;
-}
-
-function requireDb(env) {
-  if (!env.HYPN_DB) {
-    throw new Error('Falta configurar la base Cloudflare D1 con el binding HYPN_DB.');
-  }
-  return env.HYPN_DB;
-}
-
-async function createSchema(db) {
-  const statements = [
-    `CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-      password_hash TEXT NOT NULL,
-      salt TEXT NOT NULL,
-      permissions TEXT NOT NULL,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    )`,
-    `CREATE TABLE IF NOT EXISTS submissions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      username TEXT NOT NULL,
-      poster_id TEXT NOT NULL,
-      image_base64 TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT NOT NULL,
-      reviewed_at TEXT,
-      reviewed_by TEXT,
-      reject_reason TEXT,
-      published_slot INTEGER
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status)`,
-    `CREATE INDEX IF NOT EXISTS idx_submissions_user ON submissions(user_id)`,
-    `CREATE TABLE IF NOT EXISTS audit_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      actor TEXT NOT NULL,
-      action TEXT NOT NULL,
-      target TEXT,
-      created_at TEXT NOT NULL
-    )`
-  ];
-
-  for (const sql of statements) {
-    await db.prepare(sql).run();
-  }
-}
-
-async function writeAudit(db, actor, action, target) {
-  try {
-    await db.prepare(
-      'INSERT INTO audit_log (actor, action, target, created_at) VALUES (?, ?, ?, ?)'
-    ).bind(actor || 'unknown', action, target || '', new Date().toISOString()).run();
-  } catch {
-  }
+function normalizeExtension(extension) {
+  const ext = String(extension || '').toLowerCase().replace('jpeg', 'jpg');
+  if (ext !== 'jpg' && ext !== 'png') throw new Error('Solo JPG o PNG.');
+  return ext;
 }
 
 function normalizeUsername(value) {
-  return String(value || '').trim();
+  const s = String(value || '').trim().toLowerCase();
+  if (!/^[a-z0-9._-]+$/.test(s)) return '';
+  return s;
 }
 
-function validateUsername(username) {
-  if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) {
-    throw new Error('El usuario debe tener 3-32 caracteres: letras, números, punto, guion o guion bajo.');
-  }
-}
-
-function validatePassword(password) {
-  if (String(password).length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
-  if (String(password).length > 128) throw new Error('La contraseña es demasiado larga.');
-}
-
-function sanitizePermissions(value) {
-  if (!Array.isArray(value)) return [];
-  const seen = new Set();
+function sanitizePermissions(input) {
+  const list = Array.isArray(input) ? input : [];
   const out = [];
-  for (const id of value) {
+  const seen = new Set();
+  for (const id of list) {
     const s = String(id || '').trim();
     if (POSTER_SET.has(s) && !seen.has(s)) {
       seen.add(s);
@@ -759,7 +643,7 @@ function cors(response, request, env) {
     const h = new Headers(response.headers);
     h.set('Access-Control-Allow-Origin', origin);
     h.set('Vary', 'Origin');
-    h.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    h.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers: h });
   } catch {
@@ -770,47 +654,110 @@ function cors(response, request, env) {
 function json(data, status, request, env) {
   return cors(new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
   }), request, env);
 }
 
+function requireDb(env) {
+  if (!env.HYPN_DB) throw new Error('Falta configurar la base Cloudflare D1 con el binding HYPN_DB.');
+  return env.HYPN_DB;
+}
+
+async function ensureSchema(db) {
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      permissions TEXT NOT NULL DEFAULT '[]',
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      poster_id TEXT NOT NULL,
+      image_base64 TEXT NOT NULL,
+      extension TEXT NOT NULL,
+      mime TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL,
+      reviewed_at INTEGER,
+      reviewed_by TEXT,
+      review_note TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
+    CREATE INDEX IF NOT EXISTS idx_submissions_user ON submissions(user_id);
+  `);
+}
+
+async function requireSession(request, env) {
+  requireEnv(env, ['SESSION_SECRET']);
+  const auth = request.headers.get('Authorization') || '';
+  if (!auth.startsWith('Bearer ')) throw new Error('Sesión no enviada.');
+  const token = auth.slice(7).trim();
+  const session = await decryptSession(token, env.SESSION_SECRET);
+  if (!session || !session.exp || session.exp < Date.now()) throw new Error('Sesión inválida o vencida.');
+  return session;
+}
+
+async function requireOwner(request, env) {
+  const session = await requireSession(request, env);
+  if (session.role !== 'owner') throw new Error('Solo OWNER puede realizar esta acción.');
+  return session;
+}
+
+async function requireCollaborator(request, env) {
+  const session = await requireSession(request, env);
+  if (session.role !== 'collab') throw new Error('Esta acción requiere una sesión de colaborador.');
+  return session;
+}
+
 async function signState(payload, secret) {
-  const part = base64UrlEncode(encoder.encode(JSON.stringify(payload)));
-  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(part));
-  return part + '.' + base64UrlEncode(new Uint8Array(sig));
+  const body = bytesToBase64Url(encoder.encode(JSON.stringify(payload)));
+  const signature = await hmacSha256(body, secret);
+  return `${body}.${bytesToBase64Url(signature)}`;
 }
 
 async function verifyState(value, secret) {
-  const [part, sig] = String(value).split('.');
-  if (!part || !sig) return null;
-  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-  const ok = await crypto.subtle.verify('HMAC', key, base64UrlDecode(sig), encoder.encode(part));
-  if (!ok) return null;
-  return JSON.parse(decoder.decode(base64UrlDecode(part)));
+  const parts = String(value || '').split('.');
+  if (parts.length !== 2) return null;
+  const expected = bytesToBase64Url(await hmacSha256(parts[0], secret));
+  if (!timingSafeEqual(expected, parts[1])) return null;
+  try {
+    return JSON.parse(decoder.decode(base64UrlToBytes(parts[0])));
+  } catch {
+    return null;
+  }
 }
 
-async function sessionKey(secret) {
-  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(secret));
-  return crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+async function hmacSha256(text, secret) {
+  const key = await crypto.subtle.importKey(
+    'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  return new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(text)));
 }
 
 async function encryptSession(payload, secret) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await sessionKey(secret);
-  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(payload)));
-  const bytes = new Uint8Array(iv.length + cipher.byteLength);
-  bytes.set(iv, 0);
-  bytes.set(new Uint8Array(cipher), iv.length);
-  return base64UrlEncode(bytes);
+  const key = await aesKey(secret);
+  const plain = encoder.encode(JSON.stringify(payload));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain);
+  return bytesToBase64Url(concatBytes(iv, new Uint8Array(encrypted)));
 }
 
 async function decryptSession(token, secret) {
   try {
-    const bytes = base64UrlDecode(token);
-    const iv = bytes.slice(0, 12);
-    const cipher = bytes.slice(12);
-    const key = await sessionKey(secret);
+    const packed = base64UrlToBytes(token);
+    if (packed.length < 13) return null;
+    const iv = packed.slice(0, 12);
+    const cipher = packed.slice(12);
+    const key = await aesKey(secret);
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher);
     return JSON.parse(decoder.decode(plain));
   } catch {
@@ -818,38 +765,42 @@ async function decryptSession(token, secret) {
   }
 }
 
-function base64UrlEncode(bytes) {
-  return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+async function aesKey(secret) {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(secret));
+  return await crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
-function base64UrlDecode(value) {
-  let b64 = String(value).replace(/-/g, '+').replace(/_/g, '/');
-  while (b64.length % 4) b64 += '=';
-  return base64ToBytes(b64);
+function concatBytes(a, b) {
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a, 0);
+  out.set(b, a.length);
+  return out;
 }
 
 function bytesToBase64(bytes) {
   let binary = '';
-  const chunk = 32768;
+  const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
 }
 
-function base64ToBytes(value) {
-  const s = atob(String(value));
-  const out = new Uint8Array(s.length);
-  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
-  return out;
+function bytesToBase64Url(bytes) {
+  return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-function base64ToUtf8(b64) {
-  return decoder.decode(base64ToBytes(String(b64).replace(/\n/g, '')));
+function base64ToBytes(str) {
+  const binary = atob(str);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
-function utf8ToBase64(text) {
-  return bytesToBase64(encoder.encode(text));
+function base64UrlToBytes(str) {
+  let s = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return base64ToBytes(s);
 }
 
 function encodePath(path) {
