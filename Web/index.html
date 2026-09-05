@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>HYPN Remote Image System</title>
-  <link rel="stylesheet" href="styles.css?v=147">
+  <title>HYPN Imaging System</title>
+  <link rel="stylesheet" href="styles.css?v=149">
 </head>
 <body>
   <header class="topbar">
     <div>
       <div class="eyebrow">HYPNOTIC • VRCHAT</div>
-      <h1>Remote Image System</h1>
-      <p>15 carteles remotos con aprobación del OWNER.</p>
+      <h1>HYPN Imaging System</h1>
+      <p>Administración remota de 15 carteles del club.</p>
     </div>
     <div id="systemState" class="pill">SIN SESIÓN</div>
   </header>
@@ -21,19 +21,19 @@
       <div class="section-title">
         <div>
           <h2>Acceso</h2>
-          <p class="help">OWNER entra con GitHub y publica directamente. Colaboradores entran con el usuario y contraseña que tú les crees.</p>
+          <p class="help">ADMIN administra y publica directamente. Los colaboradores entran con el usuario y contraseña que les asignes.</p>
         </div>
       </div>
 
       <div id="loggedOutBox" class="login-grid">
         <div class="login-panel">
-          <h3>OWNER</h3>
-          <p class="help">Administración completa. Tus imágenes se publican directamente y NO requieren aprobación.</p>
-          <button id="loginBtn" class="primary full">INICIAR SESIÓN CON GITHUB</button>
+          <h3>ADMIN</h3>
+          <p class="help">Administración completa. Las publicaciones del ADMIN son directas y no requieren aprobación.</p>
+          <button id="loginBtn" class="primary full">ENTRAR COMO ADMIN</button>
         </div>
         <div class="login-panel">
           <h3>COLABORADOR</h3>
-          <p class="help">Sube imágenes únicamente a sus carteles autorizados. Sus imágenes siempre quedan pendientes hasta que el OWNER las apruebe.</p>
+          <p class="help">Puede subir imágenes únicamente a los carteles autorizados. Sus imágenes quedan pendientes hasta que el ADMIN las apruebe.</p>
           <label>Usuario<input id="collabUser" autocomplete="username" placeholder="usuario"></label>
           <label>Contraseña<input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña"></label>
           <button id="collabLoginBtn" class="ghost full">ENTRAR COMO COLABORADOR</button>
@@ -57,12 +57,7 @@
 
     <section id="ownerArea" style="display:none">
       <section class="card">
-        <div class="section-title">
-          <div>
-            <h2>Galería de carteles del club</h2>
-            <p class="help">Como OWNER publicas directamente. En esta vista no se muestra APROBADA / AÚN NO APROBADA; esos indicadores son únicamente para colaboradores.</p>
-          </div>
-        </div>
+        <div class="section-title"><div><h2>Galería de carteles del club</h2><p class="help">El ADMIN publica directamente. Los indicadores de aprobación se muestran únicamente a los colaboradores.</p></div></div>
         <div id="ownerTabs" class="tabs"></div>
         <div id="ownerPosterGrid" class="poster-grid"></div>
         <div id="ownerGalleryMsg" class="msg"></div>
@@ -70,10 +65,7 @@
 
       <section class="card">
         <div class="section-title">
-          <div>
-            <h2>Solicitudes pendientes de colaboradores</h2>
-            <p class="help">Solo las imágenes enviadas por colaboradores llegan aquí. Nada de ellos llega a VRChat hasta que pulses APROBAR.</p>
-          </div>
+          <div><h2>Solicitudes pendientes de colaboradores</h2><p class="help">Las imágenes de colaboradores no llegan a VRChat hasta que el ADMIN pulse APROBAR.</p></div>
           <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
         </div>
         <div id="pendingList" class="approval-grid"></div>
@@ -81,23 +73,14 @@
       </section>
 
       <section class="card">
-        <div class="section-title">
-          <div>
-            <h2>Base de colaboradores</h2>
-            <p class="help">Usuarios, contraseñas y solicitudes se guardan en Cloudflare D1.</p>
-          </div>
-          <div id="dbPill" class="pill">COMPROBANDO</div>
-        </div>
-        <div class="row">
-          <button id="dbInitBtn" class="ghost">INICIALIZAR BASE</button>
-          <button id="refreshUsersBtn" class="ghost">RECARGAR USUARIOS</button>
-        </div>
+        <div class="section-title"><div><h2>Base de colaboradores</h2><p class="help">Usuarios, claves, permisos y solicitudes.</p></div><div id="dbPill" class="pill">COMPROBANDO</div></div>
+        <div class="row"><button id="dbInitBtn" class="ghost">INICIALIZAR BASE</button><button id="refreshUsersBtn" class="ghost">RECARGAR USUARIOS</button></div>
         <div id="dbMsg" class="msg"></div>
       </section>
 
       <section class="card">
         <h2>Crear usuario colaborador</h2>
-        <p class="help">Puedes escoger prácticamente cualquier nombre de usuario y cualquier contraseña desde 1 carácter. Solo debes asignarle al menos un área.</p>
+        <p class="help">Puedes elegir el usuario y la contraseña. Desde V1.4.9 la clave también queda cifrada para que el ADMIN pueda verla después.</p>
         <div class="grid">
           <label>Usuario<input id="newUsername" placeholder="ej. DJ Invitado 1"></label>
           <label>Contraseña inicial<input id="newPassword" type="password" placeholder="la contraseña que quieras"></label>
@@ -114,48 +97,31 @@
 
       <section class="card">
         <h2>Usuarios existentes</h2>
-        <p class="help">Desde aquí puedes cambiar el nombre de usuario, cambiar la contraseña, modificar permisos, activar/desactivar, borrar el usuario y ver la última vez que inició sesión.</p>
+        <p class="help">Puedes ver la clave asignada, cambiar usuario o contraseña, modificar permisos, activar/desactivar, borrar y revisar el último acceso.</p>
         <div id="usersList" class="user-list"></div>
         <div id="usersMsg" class="msg"></div>
       </section>
 
       <section class="card">
         <h2>Estado remoto</h2>
-        <div class="stats">
-          <div><span>Versión</span><strong id="versionStat">—</strong></div>
-          <div><span>Slots/cartel</span><strong id="slotsStat">—</strong></div>
-          <div><span>Carteles</span><strong id="channelsStat">15</strong></div>
-        </div>
+        <div class="stats"><div><span>Versión</span><strong id="versionStat">—</strong></div><div><span>Slots/cartel</span><strong id="slotsStat">—</strong></div><div><span>Carteles</span><strong id="channelsStat">15</strong></div></div>
         <pre id="rawConfig"></pre>
       </section>
     </section>
 
     <section id="collabArea" style="display:none">
       <section class="card">
-        <div class="section-title">
-          <div>
-            <h2>Mis carteles autorizados</h2>
-            <p class="help">Cada tarjeta tiene su propio cargador. ✓ verde = aprobada; ✕ rojo = todavía no aprobada por el OWNER. Si solo existe el placeholder vacío, aparecerá rojo.</p>
-          </div>
-          <button id="refreshMineBtn" class="ghost small">RECARGAR</button>
-        </div>
-        <div id="collabTabs" class="tabs"></div>
-        <div id="collabPosterGrid" class="poster-grid"></div>
-        <div id="collabSubmitMsg" class="msg"></div>
+        <div class="section-title"><div><h2>Mis carteles autorizados</h2><p class="help">✓ verde = aprobada; ✕ rojo = todavía no aprobada por el ADMIN.</p></div><button id="refreshMineBtn" class="ghost small">RECARGAR</button></div>
+        <div id="collabTabs" class="tabs"></div><div id="collabPosterGrid" class="poster-grid"></div><div id="collabSubmitMsg" class="msg"></div>
       </section>
-
-      <section class="card">
-        <h2>Mis solicitudes</h2>
-        <div id="mineList" class="history-list"></div>
-        <div id="mineMsg" class="msg"></div>
-      </section>
+      <section class="card"><h2>Mis solicitudes</h2><div id="mineList" class="history-list"></div><div id="mineMsg" class="msg"></div></section>
     </section>
   </main>
 
-  <footer>HYPN Remote Image System V1.4.7 • OWNER publica directo • aprobación visible solo para colaboradores</footer>
-  <script src="config.js?v=147"></script>
-  <script src="app.js?v=147"></script>
-  <script src="user-admin-v147.js?v=147"></script>
-  <script src="approval-status-v142.js?v=147"></script>
+  <footer>HYPN Imaging System V1.4.9 • ADMIN publica directo • colaboradores requieren aprobación</footer>
+  <script src="config.js?v=149"></script>
+  <script src="app.js?v=149"></script>
+  <script src="user-admin-v149.js?v=149"></script>
+  <script src="approval-status-v142.js?v=149"></script>
 </body>
 </html>
