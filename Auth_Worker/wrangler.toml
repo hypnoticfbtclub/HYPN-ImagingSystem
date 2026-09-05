@@ -4,17 +4,19 @@ compatibility_date = "2026-09-01"
 
 [vars]
 PUBLIC_ORIGIN = "https://hypnoticfbtclub.github.io"
-ALLOWED_REPO = "hypnoticfbtclub/HYPN-Remote-Images"
+ALLOWED_REPO = "hypnoticfbtclub/HYPN-ImagingSystem"
 GITHUB_BRANCH = "main"
 ALLOWED_USER = "hypnoticfbtclub"
 GITHUB_CLIENT_ID = "Ov23lipMntidMCKKZieK"
 
-# Secretos ya configurados en Cloudflare:
+[[d1_databases]]
+binding = "HYPN_DB"
+database_name = "hypn-remote-image-db"
+database_id = "5f5a1dfc-2f54-4c1f-b284-e2c5fe858aaf"
+
+# Secretos configurados en Cloudflare:
 # GITHUB_CLIENT_SECRET
 # SESSION_SECRET
 #
-# Para colaboradores agregar en Cloudflare un binding D1:
-# Binding name: HYPN_DB
-# Database sugerida: hypn-remote-image-db
-# El database_id se puede añadir aqui despues de crear la base si se desea
-# administrar el binding tambien desde Wrangler.
+# D1 queda administrado tambien desde Wrangler para que futuros deploys
+# no eliminen el binding HYPN_DB del Worker.
