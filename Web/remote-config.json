@@ -1,10 +1,10 @@
 {
   "schema": 2,
-  "version": 7,
+  "version": 8,
   "slotsPerChannel": 8,
   "channels": {
     "salon_01": 3,
-    "salon_02": 1,
+    "salon_02": 2,
     "salon_03": 0,
     "salon_04": 0,
     "salon_05": 0,
@@ -59,6 +59,6 @@
       "fuera_05"
     ]
   },
-  "updatedAt": "2026-09-05T02:17:28.881Z",
-  "revision": 1
+  "updatedAt": "2026-09-05T02:31:04.520Z",
+  "revision": 2
 }
