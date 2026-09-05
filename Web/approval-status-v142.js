@@ -1,8 +1,9 @@
 (() => {
-  const VERSION = '1.4.3';
+  const VERSION = '1.4.4';
+  const PLACEHOLDER_MAX = 32;
 
   const style = document.createElement('style');
-  style.id = 'hypn-approval-v143-style';
+  style.id = 'hypn-approval-v144-style';
   style.textContent = `
     .poster-preview{position:relative}
     .hypn-approval-overlay{
@@ -37,18 +38,18 @@
   `;
   document.head.appendChild(style);
 
-  function classify(text) {
+  function textSaysUnapproved(text) {
     const t = String(text || '').trim().toUpperCase();
-    if (t.includes('APROBADA') || t.includes('APROBADO') || t.includes('PUBLICADO')) {
-      return { approved: true, label: 'APROBADA', icon: '✓' };
-    }
-    if (t.includes('PENDIENTE') || t.includes('SIN SOLICITUD') || t.includes('RECHAZADA') || t.includes('NO APROBADA') || t.includes('SIN APROBAR')) {
-      return { approved: false, label: 'AÚN NO APROBADA', icon: '✕' };
-    }
-    return null;
+    return t.includes('PENDIENTE') || t.includes('SIN SOLICITUD') || t.includes('RECHAZADA') || t.includes('NO APROBADA') || t.includes('SIN APROBAR') || t.includes('AÚN NO APROBADA');
   }
 
-  function setVisualState(preview, badge, state) {
+  function hasRealImage(img) {
+    if (!img || !img.complete) return null;
+    if (!img.naturalWidth || !img.naturalHeight) return false;
+    return img.naturalWidth > PLACEHOLDER_MAX || img.naturalHeight > PLACEHOLDER_MAX;
+  }
+
+  function setState(preview, badge, approved) {
     let overlay = preview.querySelector('.hypn-approval-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -56,12 +57,14 @@
       preview.appendChild(overlay);
     }
 
-    overlay.className = `hypn-approval-overlay ${state.approved ? 'approved' : 'unapproved'}`;
-    overlay.innerHTML = `<span class="hypn-approval-icon">${state.icon}</span><span>${state.label}</span>`;
+    const label = approved ? 'APROBADA' : 'AÚN NO APROBADA';
+    const icon = approved ? '✓' : '✕';
+    overlay.className = `hypn-approval-overlay ${approved ? 'approved' : 'unapproved'}`;
+    overlay.innerHTML = `<span class="hypn-approval-icon">${icon}</span><span>${label}</span>`;
 
-    badge.classList.remove('approval-green', 'approval-red');
-    badge.classList.add(state.approved ? 'approval-green' : 'approval-red');
-    badge.innerHTML = `<span style="font-weight:950;margin-right:5px">${state.icon}</span>${state.label}`;
+    badge.classList.remove('approval-green', 'approval-red', 'ok', 'warn', 'bad', 'neutral');
+    badge.classList.add(approved ? 'approval-green' : 'approval-red');
+    badge.innerHTML = `<span style="font-weight:950;margin-right:5px">${icon}</span>${label}`;
   }
 
   function decoratePoster(card) {
@@ -74,26 +77,24 @@
       badge.dataset.hypnOriginalStatus = badge.textContent || '';
     }
 
-    if (!img.dataset.hypnApprovalWatch) {
-      img.dataset.hypnApprovalWatch = '1';
-      img.addEventListener('load', scheduleApply);
-      img.addEventListener('error', scheduleApply);
+    if (!img.dataset.hypnApprovalBound) {
+      img.dataset.hypnApprovalBound = '1';
+      img.addEventListener('load', () => decoratePoster(card));
+      img.addEventListener('error', () => decoratePoster(card));
     }
 
-    // Mientras la imagen aún está cargando no decidimos el estado.
-    if (!img.complete) return;
+    const originalStatus = badge.dataset.hypnOriginalStatus;
+    if (textSaysUnapproved(originalStatus)) {
+      setState(preview, badge, false);
+      return;
+    }
 
-    const baseState = classify(badge.dataset.hypnOriginalStatus);
-    if (!baseState) return;
+    const realImage = hasRealImage(img);
+    if (realImage === null) return;
 
-    // Regla principal V1.4.3:
-    // si el archivo de imagen no existe o no pudo cargarse, NUNCA se marca como aprobada.
-    const imageExists = img.naturalWidth > 0 && img.naturalHeight > 0;
-    const finalState = (!imageExists)
-      ? { approved: false, label: 'AÚN NO APROBADA', icon: '✕' }
-      : baseState;
-
-    setVisualState(preview, badge, finalState);
+    // Los carteles vacíos del sistema usan un placeholder JPEG de 16x16.
+    // Es un archivo válido, pero NO significa que el OWNER haya aprobado una imagen real.
+    setState(preview, badge, realImage === true);
   }
 
   function decoratePendingCard(card) {
@@ -108,12 +109,8 @@
   function apply() {
     document.querySelectorAll('.poster-card').forEach(decoratePoster);
     document.querySelectorAll('.approval-card').forEach(decoratePendingCard);
-
     const footer = document.querySelector('footer');
-    if (footer) {
-      footer.dataset.approvalV143 = '1';
-      footer.textContent = `HYPN Remote Image System V${VERSION} • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER`;
-    }
+    if (footer) footer.textContent = `HYPN Remote Image System V${VERSION} • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER`;
   }
 
   let scheduled = false;
@@ -129,11 +126,8 @@
   const observer = new MutationObserver(scheduleApply);
   observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', apply, { once: true });
-  } else {
-    apply();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
+  else apply();
 
   setInterval(apply, 1500);
 })();
