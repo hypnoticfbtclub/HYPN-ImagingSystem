@@ -1,9 +1,9 @@
 (() => {
-  const VERSION = '1.4.6';
+  const VERSION = '1.4.7';
   const PLACEHOLDER_MAX = 32;
 
   const style = document.createElement('style');
-  style.id = 'hypn-approval-v146-style';
+  style.id = 'hypn-approval-v147-style';
   style.textContent = `
     #collabPosterGrid .poster-preview{position:relative}
     #collabPosterGrid .hypn-approval-overlay{
@@ -66,9 +66,7 @@
     const img = preview?.querySelector('img');
     if (!preview || !badge || !img) return;
 
-    if (!badge.dataset.hypnOriginalStatus) {
-      badge.dataset.hypnOriginalStatus = badge.textContent || '';
-    }
+    if (!badge.dataset.hypnOriginalStatus) badge.dataset.hypnOriginalStatus = badge.textContent || '';
 
     if (!img.dataset.hypnApprovalBound) {
       img.dataset.hypnApprovalBound = '1';
@@ -109,10 +107,7 @@
   function scheduleApply() {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => {
-      scheduled = false;
-      apply();
-    });
+    requestAnimationFrame(() => { scheduled = false; apply(); });
   }
 
   const observer = new MutationObserver(scheduleApply);
@@ -120,6 +115,5 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
   else apply();
-
   setInterval(apply, 1500);
 })();
