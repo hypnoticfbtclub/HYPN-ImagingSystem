@@ -1,0 +1,33 @@
+name: Diagnose HYPN Auth Worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/diagnose-auth-worker.yml"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        run: |
+          echo "=== /health ==="
+          curl -sS -i --max-time 20 https://hypn-remote-image-auth.hypnoticfbtclub.workers.dev/health || true
+      - name: Login endpoint check
+        run: |
+          echo "=== OPTIONS /api/collab/login ==="
+          curl -sS -i --max-time 20 -X OPTIONS \
+            -H 'Origin: https://hypnoticfbtclub.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type' \
+            https://hypn-remote-image-auth.hypnoticfbtclub.workers.dev/api/collab/login || true
+          echo
+          echo "=== POST /api/collab/login (diagnostic fake credentials) ==="
+          curl -sS -i --max-time 20 -X POST \
+            -H 'Origin: https://hypnoticfbtclub.github.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"username":"__hypn_diagnostic__","password":"__invalid__"}' \
+            https://hypn-remote-image-auth.hypnoticfbtclub.workers.dev/api/collab/login || true
