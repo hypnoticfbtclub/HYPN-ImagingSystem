@@ -2,6 +2,12 @@ name: Deploy HYPN Auth Worker
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Auth_Worker/**"
+      - ".github/workflows/deploy-worker.yml"
 
 jobs:
   deploy:
