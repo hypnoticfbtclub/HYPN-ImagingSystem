@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Remote Image System</title>
-  <link rel="stylesheet" href="styles.css?v=144">
+  <link rel="stylesheet" href="styles.css?v=145">
 </head>
 <body>
   <header class="topbar">
@@ -21,19 +21,19 @@
       <div class="section-title">
         <div>
           <h2>Acceso</h2>
-          <p class="help">OWNER entra con GitHub. Colaboradores entran con usuario y contraseña creados por el OWNER.</p>
+          <p class="help">OWNER entra con GitHub y publica directamente. Colaboradores entran con el usuario y contraseña que tú les crees.</p>
         </div>
       </div>
 
       <div id="loggedOutBox" class="login-grid">
         <div class="login-panel">
           <h3>OWNER</h3>
-          <p class="help">Administración completa, aprobación y publicación directa.</p>
+          <p class="help">Administración completa. Tus imágenes se publican directamente y NO requieren aprobación.</p>
           <button id="loginBtn" class="primary full">INICIAR SESIÓN CON GITHUB</button>
         </div>
         <div class="login-panel">
           <h3>COLABORADOR</h3>
-          <p class="help">Sube imágenes únicamente a tus carteles autorizados. Todo queda pendiente hasta aprobación.</p>
+          <p class="help">Sube imágenes únicamente a sus carteles autorizados. Sus imágenes siempre quedan pendientes hasta que el OWNER las apruebe.</p>
           <label>Usuario<input id="collabUser" autocomplete="username" placeholder="usuario"></label>
           <label>Contraseña<input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña"></label>
           <button id="collabLoginBtn" class="ghost full">ENTRAR COMO COLABORADOR</button>
@@ -60,7 +60,7 @@
         <div class="section-title">
           <div>
             <h2>Galería de carteles del club</h2>
-            <p class="help">Cada cartel tiene su propio cuadro de carga. ✓ verde significa APROBADA; ✕ rojo significa AÚN NO APROBADA. Los placeholders vacíos de 16x16 siempre salen en rojo.</p>
+            <p class="help">Cada cartel tiene su propio cuadro de carga. ✓ verde significa APROBADA; ✕ rojo significa AÚN NO APROBADA. Los placeholders vacíos de 16x16 siempre salen en rojo. Como OWNER, al pulsar PUBLICAR se publica directamente.</p>
           </div>
         </div>
         <div id="ownerTabs" class="tabs"></div>
@@ -71,8 +71,8 @@
       <section class="card">
         <div class="section-title">
           <div>
-            <h2>Solicitudes pendientes</h2>
-            <p class="help">Nada llega a VRChat hasta que pulses APROBAR.</p>
+            <h2>Solicitudes pendientes de colaboradores</h2>
+            <p class="help">Solo las imágenes enviadas por colaboradores llegan aquí. Nada de ellos llega a VRChat hasta que pulses APROBAR.</p>
           </div>
           <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
         </div>
@@ -97,9 +97,10 @@
 
       <section class="card">
         <h2>Crear usuario colaborador</h2>
+        <p class="help">Puedes escoger prácticamente cualquier nombre de usuario y cualquier contraseña desde 1 carácter. Solo debes asignarle al menos un área.</p>
         <div class="grid">
-          <label>Usuario<input id="newUsername" placeholder="ej. dj_invitado"></label>
-          <label>Contraseña inicial<input id="newPassword" type="password" placeholder="mínimo 8 caracteres"></label>
+          <label>Usuario<input id="newUsername" placeholder="ej. DJ Invitado 1"></label>
+          <label>Contraseña inicial<input id="newPassword" type="password" placeholder="la contraseña que quieras"></label>
         </div>
         <div class="permission-box">
           <strong>Permisos</strong>
@@ -150,9 +151,9 @@
     </section>
   </main>
 
-  <footer>HYPN Remote Image System V1.4.4 • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER</footer>
-  <script src="config.js?v=144"></script>
-  <script src="app.js?v=144"></script>
-  <script src="approval-status-v142.js?v=144"></script>
+  <footer>HYPN Remote Image System V1.4.5 • OWNER publica directo • colaboradores requieren aprobación</footer>
+  <script src="config.js?v=145"></script>
+  <script src="app.js?v=145"></script>
+  <script src="approval-status-v142.js?v=145"></script>
 </body>
 </html>
