@@ -1,9 +1,9 @@
 (() => {
-  const VERSION = '1.4.4';
+  const VERSION = '1.4.5';
   const PLACEHOLDER_MAX = 32;
 
   const style = document.createElement('style');
-  style.id = 'hypn-approval-v144-style';
+  style.id = 'hypn-approval-v145-style';
   style.textContent = `
     .poster-preview{position:relative}
     .hypn-approval-overlay{
@@ -92,8 +92,6 @@
     const realImage = hasRealImage(img);
     if (realImage === null) return;
 
-    // Los carteles vacíos del sistema usan un placeholder JPEG de 16x16.
-    // Es un archivo válido, pero NO significa que el OWNER haya aprobado una imagen real.
     setState(preview, badge, realImage === true);
   }
 
@@ -110,7 +108,7 @@
     document.querySelectorAll('.poster-card').forEach(decoratePoster);
     document.querySelectorAll('.approval-card').forEach(decoratePendingCard);
     const footer = document.querySelector('footer');
-    if (footer) footer.textContent = `HYPN Remote Image System V${VERSION} • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER`;
+    if (footer) footer.textContent = `HYPN Remote Image System V${VERSION} • OWNER publica directo • colaboradores requieren aprobación`;
   }
 
   let scheduled = false;
