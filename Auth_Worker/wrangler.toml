@@ -1,5 +1,5 @@
 name = "hypn-remote-image-auth"
-main = "src/index_v145.js"
+main = "src/index_v147.js"
 compatibility_date = "2026-09-01"
 
 [vars]
@@ -18,8 +18,9 @@ database_id = "5f5a1dfc-2f54-4c1f-b284-e2c5fe858aaf"
 # GITHUB_CLIENT_SECRET
 # SESSION_SECRET
 #
-# V1.4.5 usa src/index_v145.js.
-# PBKDF2 ajustado al máximo compatible de Cloudflare: 100000 iteraciones.
-# Usuarios: nombre flexible y contraseña desde 1 carácter.
+# V1.4.7 usa src/index_v147.js.
+# PBKDF2 compatible con Cloudflare: 100000 iteraciones.
 # OWNER publica directamente; solo colaboradores requieren aprobación.
+# Administración: cambiar usuario, cambiar clave, activar/desactivar,
+# borrar usuario y registrar la última vez que inició sesión.
 # D1 queda administrado desde Wrangler para mantener HYPN_DB en futuros deploys.
