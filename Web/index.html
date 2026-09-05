@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Imaging System</title>
-  <link rel="stylesheet" href="styles.css?v=149">
+  <link rel="stylesheet" href="styles.css?v=1411">
 </head>
 <body>
   <header class="topbar">
@@ -21,7 +21,7 @@
       <div class="section-title">
         <div>
           <h2>Acceso</h2>
-          <p class="help">ADMIN administra y publica directamente. Los colaboradores entran con el usuario y contraseña que les asignes.</p>
+          <p class="help">ADMIN administra y publica directamente. Los colaboradores entran con el usuario, contraseña y rol personalizado que les asignes.</p>
         </div>
       </div>
 
@@ -33,7 +33,7 @@
         </div>
         <div class="login-panel">
           <h3>COLABORADOR</h3>
-          <p class="help">Puede subir imágenes únicamente a los carteles autorizados. Sus imágenes quedan pendientes hasta que el ADMIN las apruebe.</p>
+          <p class="help">Puede subir imágenes únicamente a los carteles autorizados. Su rol puede ser personalizado por el ADMIN y sus imágenes quedan pendientes hasta aprobación.</p>
           <label>Usuario<input id="collabUser" autocomplete="username" placeholder="usuario"></label>
           <label>Contraseña<input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña"></label>
           <button id="collabLoginBtn" class="ghost full">ENTRAR COMO COLABORADOR</button>
@@ -73,17 +73,18 @@
       </section>
 
       <section class="card">
-        <div class="section-title"><div><h2>Base de colaboradores</h2><p class="help">Usuarios, claves, permisos y solicitudes.</p></div><div id="dbPill" class="pill">COMPROBANDO</div></div>
+        <div class="section-title"><div><h2>Base de colaboradores</h2><p class="help">Usuarios, claves, roles personalizados, permisos y solicitudes.</p></div><div id="dbPill" class="pill">COMPROBANDO</div></div>
         <div class="row"><button id="dbInitBtn" class="ghost">INICIALIZAR BASE</button><button id="refreshUsersBtn" class="ghost">RECARGAR USUARIOS</button></div>
         <div id="dbMsg" class="msg"></div>
       </section>
 
       <section class="card">
         <h2>Crear usuario colaborador</h2>
-        <p class="help">Puedes elegir el usuario y la contraseña. Desde V1.4.9 la clave también queda cifrada para que el ADMIN pueda verla después.</p>
+        <p class="help">Puedes elegir libremente el usuario, contraseña y rol. Ejemplos: DJ RESIDENTE, FOTÓGRAFO, STAFF VIP, DISEÑADOR, PROMOTOR o cualquier nombre que quieras.</p>
         <div class="grid">
           <label>Usuario<input id="newUsername" placeholder="ej. DJ Invitado 1"></label>
           <label>Contraseña inicial<input id="newPassword" type="password" placeholder="la contraseña que quieras"></label>
+          <label>Rol personalizado<input id="newCustomRole" maxlength="48" placeholder="ej. DJ RESIDENTE"></label>
         </div>
         <div class="permission-box">
           <strong>Permisos</strong>
@@ -97,7 +98,7 @@
 
       <section class="card">
         <h2>Usuarios existentes</h2>
-        <p class="help">Puedes ver la clave asignada, cambiar usuario o contraseña, modificar permisos, activar/desactivar, borrar y revisar el último acceso.</p>
+        <p class="help">Puedes cambiar el rol personalizado cuando quieras, además de usuario, contraseña, permisos, estado y revisar el último acceso.</p>
         <div id="usersList" class="user-list"></div>
         <div id="usersMsg" class="msg"></div>
       </section>
@@ -111,17 +112,18 @@
 
     <section id="collabArea" style="display:none">
       <section class="card">
-        <div class="section-title"><div><h2>Mis carteles autorizados</h2><p class="help">✓ verde = aprobada; ✕ rojo = todavía no aprobada por el ADMIN.</p></div><button id="refreshMineBtn" class="ghost small">RECARGAR</button></div>
+        <div class="section-title"><div><h2>Mis carteles autorizados</h2><p class="help">Tu rol personalizado aparece arriba en tu sesión. ✓ verde = aprobada; ✕ rojo = todavía no aprobada por el ADMIN.</p></div><button id="refreshMineBtn" class="ghost small">RECARGAR</button></div>
         <div id="collabTabs" class="tabs"></div><div id="collabPosterGrid" class="poster-grid"></div><div id="collabSubmitMsg" class="msg"></div>
       </section>
       <section class="card"><h2>Mis solicitudes</h2><div id="mineList" class="history-list"></div><div id="mineMsg" class="msg"></div></section>
     </section>
   </main>
 
-  <footer>HYPN Imaging System V1.4.9 • ADMIN publica directo • colaboradores requieren aprobación</footer>
-  <script src="config.js?v=149"></script>
-  <script src="app.js?v=149"></script>
-  <script src="user-admin-v149.js?v=149"></script>
-  <script src="approval-status-v149.js?v=149"></script>
+  <footer>HYPN Imaging System V1.4.11 • roles personalizados • ADMIN publica directo</footer>
+  <script src="config.js?v=1411"></script>
+  <script src="app.js?v=1411"></script>
+  <script src="user-admin-v149.js?v=1411"></script>
+  <script src="custom-role-v1411.js?v=1411"></script>
+  <script src="approval-status-v149.js?v=1411"></script>
 </body>
 </html>
