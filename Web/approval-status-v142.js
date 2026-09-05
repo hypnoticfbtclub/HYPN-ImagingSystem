@@ -1,9 +1,9 @@
 (() => {
-  const VERSION = '1.4.7';
+  const VERSION = '1.4.8';
   const PLACEHOLDER_MAX = 32;
 
   const style = document.createElement('style');
-  style.id = 'hypn-approval-v147-style';
+  style.id = 'hypn-approval-v148-style';
   style.textContent = `
     #collabPosterGrid .poster-preview{position:relative}
     #collabPosterGrid .hypn-approval-overlay{
@@ -85,7 +85,7 @@
     setState(preview, badge, realImage === true);
   }
 
-  function cleanupOwnerApprovalDecorations() {
+  function cleanupAdminApprovalDecorations() {
     document.querySelectorAll('#ownerArea .hypn-approval-overlay, #ownerArea .hypn-pending-overlay').forEach(el => el.remove());
     document.querySelectorAll('#ownerPosterGrid .badge').forEach(badge => {
       if (badge.dataset.hypnOriginalStatus) {
@@ -96,11 +96,61 @@
     });
   }
 
+  function replaceBrandingAndRole() {
+    document.title = 'HYPN Imaging System';
+
+    const h1 = document.querySelector('.topbar h1');
+    if (h1) h1.textContent = 'HYPN Imaging System';
+
+    const headerText = document.querySelector('.topbar p');
+    if (headerText) headerText.textContent = '15 carteles remotos para administrar las imágenes del club.';
+
+    const loginPanels = document.querySelectorAll('#loggedOutBox .login-panel');
+    if (loginPanels[0]) {
+      const title = loginPanels[0].querySelector('h3');
+      const help = loginPanels[0].querySelector('.help');
+      const button = loginPanels[0].querySelector('button');
+      if (title) title.textContent = 'ADMIN';
+      if (help) help.textContent = 'Administración completa. Tus imágenes se publican directamente y no requieren aprobación.';
+      if (button) button.textContent = 'ENTRAR COMO ADMIN';
+    }
+    if (loginPanels[1]) {
+      const help = loginPanels[1].querySelector('.help');
+      if (help) help.textContent = 'Sube imágenes únicamente a los carteles autorizados. Sus imágenes quedan pendientes hasta que el ADMIN las apruebe.';
+    }
+
+    const accessHelp = document.querySelector('main > .card .section-title .help');
+    if (accessHelp) accessHelp.textContent = 'ADMIN entra con su acceso administrativo. Colaboradores entran con el usuario y contraseña asignados.';
+
+    const roleStat = document.getElementById('roleStat');
+    if (roleStat && roleStat.textContent.trim().toUpperCase() === 'OWNER') roleStat.textContent = 'ADMIN';
+
+    const galleryHelp = document.querySelector('#ownerArea .card .section-title .help');
+    if (galleryHelp) galleryHelp.textContent = 'Como ADMIN publicas directamente. Los indicadores de aprobación son únicamente para colaboradores.';
+
+    const collabHelp = document.querySelector('#collabArea .card .section-title .help');
+    if (collabHelp) collabHelp.textContent = 'Cada tarjeta tiene su propio cargador. ✓ verde = aprobada; ✕ rojo = todavía no aprobada por el ADMIN.';
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const parent = node.parentElement;
+      if (!parent || parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE') continue;
+      let text = node.nodeValue || '';
+      text = text.replace(/OWNER/g, 'ADMIN').replace(/Owner/g, 'ADMIN').replace(/owner/g, 'admin');
+      text = text.replace(/GitHub/gi, 'acceso administrativo');
+      text = text.replace(/Remote Image System/g, 'HYPN Imaging System');
+      if (text !== node.nodeValue) node.nodeValue = text;
+    }
+  }
+
   function apply() {
-    cleanupOwnerApprovalDecorations();
+    cleanupAdminApprovalDecorations();
     document.querySelectorAll('#collabPosterGrid .poster-card').forEach(decorateCollaboratorPoster);
+    replaceBrandingAndRole();
     const footer = document.querySelector('footer');
-    if (footer) footer.textContent = `HYPN Remote Image System V${VERSION} • OWNER publica directo • aprobación visible solo para colaboradores`;
+    if (footer) footer.textContent = `HYPN Imaging System V${VERSION} • ADMIN publica directo • aprobación visible solo para colaboradores`;
   }
 
   let scheduled = false;
@@ -115,5 +165,5 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, { once: true });
   else apply();
-  setInterval(apply, 1500);
+  setInterval(apply, 1200);
 })();
