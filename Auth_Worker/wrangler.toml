@@ -9,6 +9,12 @@ GITHUB_BRANCH = "main"
 ALLOWED_USER = "hypnoticfbtclub"
 GITHUB_CLIENT_ID = "Ov23lipMntidMCKKZieK"
 
-# Cargar como secretos en Cloudflare:
+# Secretos ya configurados en Cloudflare:
 # GITHUB_CLIENT_SECRET
 # SESSION_SECRET
+#
+# Para colaboradores agregar en Cloudflare un binding D1:
+# Binding name: HYPN_DB
+# Database sugerida: hypn-remote-image-db
+# El database_id se puede añadir aqui despues de crear la base si se desea
+# administrar el binding tambien desde Wrangler.
