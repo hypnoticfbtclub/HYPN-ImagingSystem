@@ -1,9 +1,9 @@
 {
   "schema": 2,
-  "version": 3,
+  "version": 4,
   "slotsPerChannel": 8,
   "channels": {
-    "salon_01": 0,
+    "salon_01": 1,
     "salon_02": 0,
     "salon_03": 0,
     "salon_04": 0,
@@ -37,9 +37,27 @@
     "fuera_05": "Fuera del Club 5"
   },
   "groups": {
-    "salon_principal": ["salon_01", "salon_02", "salon_03", "salon_04", "salon_05", "salon_06"],
-    "colaboradores": ["colab_01", "colab_02", "colab_03", "colab_04"],
-    "fuera_club": ["fuera_01", "fuera_02", "fuera_03", "fuera_04", "fuera_05"]
+    "salon_principal": [
+      "salon_01",
+      "salon_02",
+      "salon_03",
+      "salon_04",
+      "salon_05",
+      "salon_06"
+    ],
+    "colaboradores": [
+      "colab_01",
+      "colab_02",
+      "colab_03",
+      "colab_04"
+    ],
+    "fuera_club": [
+      "fuera_01",
+      "fuera_02",
+      "fuera_03",
+      "fuera_04",
+      "fuera_05"
+    ]
   },
-  "updatedAt": "2026-09-04T23:55:00.000Z"
+  "updatedAt": "2026-09-05T00:19:00.329Z"
 }
