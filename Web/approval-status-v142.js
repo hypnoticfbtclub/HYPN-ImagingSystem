@@ -1,8 +1,8 @@
 (() => {
-  const VERSION = '1.4.2';
+  const VERSION = '1.4.3';
 
   const style = document.createElement('style');
-  style.id = 'hypn-approval-v142-style';
+  style.id = 'hypn-approval-v143-style';
   style.textContent = `
     .poster-preview{position:relative}
     .hypn-approval-overlay{
@@ -48,14 +48,7 @@
     return null;
   }
 
-  function decoratePoster(card) {
-    const preview = card.querySelector('.poster-preview');
-    const badge = card.querySelector('.badge');
-    if (!preview || !badge) return;
-
-    const state = classify(badge.textContent);
-    if (!state) return;
-
+  function setVisualState(preview, badge, state) {
     let overlay = preview.querySelector('.hypn-approval-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -69,6 +62,38 @@
     badge.classList.remove('approval-green', 'approval-red');
     badge.classList.add(state.approved ? 'approval-green' : 'approval-red');
     badge.innerHTML = `<span style="font-weight:950;margin-right:5px">${state.icon}</span>${state.label}`;
+  }
+
+  function decoratePoster(card) {
+    const preview = card.querySelector('.poster-preview');
+    const badge = card.querySelector('.badge');
+    const img = preview?.querySelector('img');
+    if (!preview || !badge || !img) return;
+
+    if (!badge.dataset.hypnOriginalStatus) {
+      badge.dataset.hypnOriginalStatus = badge.textContent || '';
+    }
+
+    if (!img.dataset.hypnApprovalWatch) {
+      img.dataset.hypnApprovalWatch = '1';
+      img.addEventListener('load', scheduleApply);
+      img.addEventListener('error', scheduleApply);
+    }
+
+    // Mientras la imagen aún está cargando no decidimos el estado.
+    if (!img.complete) return;
+
+    const baseState = classify(badge.dataset.hypnOriginalStatus);
+    if (!baseState) return;
+
+    // Regla principal V1.4.3:
+    // si el archivo de imagen no existe o no pudo cargarse, NUNCA se marca como aprobada.
+    const imageExists = img.naturalWidth > 0 && img.naturalHeight > 0;
+    const finalState = (!imageExists)
+      ? { approved: false, label: 'AÚN NO APROBADA', icon: '✕' }
+      : baseState;
+
+    setVisualState(preview, badge, finalState);
   }
 
   function decoratePendingCard(card) {
@@ -85,21 +110,21 @@
     document.querySelectorAll('.approval-card').forEach(decoratePendingCard);
 
     const footer = document.querySelector('footer');
-    if (footer && !footer.dataset.approvalV142) {
-      footer.dataset.approvalV142 = '1';
+    if (footer) {
+      footer.dataset.approvalV143 = '1';
       footer.textContent = `HYPN Remote Image System V${VERSION} • ✓ APROBADA / ✕ AÚN NO APROBADA • aprobación OWNER`;
     }
   }
 
   let scheduled = false;
-  const scheduleApply = () => {
+  function scheduleApply() {
     if (scheduled) return;
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
       apply();
     });
-  };
+  }
 
   const observer = new MutationObserver(scheduleApply);
   observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
