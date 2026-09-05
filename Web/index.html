@@ -11,7 +11,7 @@
     <div>
       <div class="eyebrow">HYPNOTIC • VRCHAT</div>
       <h1>Remote Image System</h1>
-      <p>Control remoto de carteles e imágenes del club.</p>
+      <p>15 carteles remotos con aprobación del OWNER.</p>
     </div>
     <div id="systemState" class="pill">SIN SESIÓN</div>
   </header>
@@ -20,75 +20,186 @@
     <section class="card">
       <div class="section-title">
         <div>
-          <h2>Acceso administrativo</h2>
-          <p class="help">Inicia sesión con GitHub. La contraseña de GitHub nunca pasa por esta página.</p>
+          <h2>Acceso</h2>
+          <p class="help">OWNER entra con GitHub. Colaboradores entran con usuario y contraseña creados por el OWNER.</p>
         </div>
       </div>
 
-      <div id="loggedOutBox">
-        <button id="loginBtn" class="primary" style="min-width:240px">INICIAR SESIÓN CON GITHUB</button>
-        <p class="help" style="margin-top:12px">GitHub te pedirá autorizar el acceso y luego volverás automáticamente a este panel.</p>
+      <div id="loggedOutBox" class="login-grid">
+        <div class="login-panel">
+          <h3>OWNER</h3>
+          <p class="help">Administración completa, aprobación y publicación directa.</p>
+          <button id="loginBtn" class="primary full">INICIAR SESIÓN CON GITHUB</button>
+        </div>
+
+        <div class="login-panel">
+          <h3>COLABORADOR</h3>
+          <p class="help">Puede subir imágenes únicamente a los carteles autorizados. Todo queda pendiente hasta aprobación.</p>
+          <label>Usuario
+            <input id="collabUser" autocomplete="username" placeholder="usuario">
+          </label>
+          <label>Contraseña
+            <input id="collabPassword" type="password" autocomplete="current-password" placeholder="contraseña">
+          </label>
+          <button id="collabLoginBtn" class="ghost full">ENTRAR COMO COLABORADOR</button>
+          <div id="collabLoginMsg" class="msg"></div>
+        </div>
       </div>
 
       <div id="loggedInBox" style="display:none">
         <div class="stats">
           <div><span>Cuenta</span><strong id="loginStat">—</strong></div>
-          <div><span>Repositorio</span><strong id="repoStat" style="font-size:16px">—</strong></div>
-          <div><span>Sesión</span><strong id="sessionStat" style="font-size:16px">ACTIVA</strong></div>
+          <div><span>Rol</span><strong id="roleStat">—</strong></div>
+          <div><span>Sesión</span><strong>ACTIVA</strong></div>
         </div>
         <div class="row">
           <button id="logoutBtn" class="ghost">CERRAR SESIÓN</button>
           <button id="refreshBtn" class="ghost">RECARGAR ESTADO</button>
         </div>
       </div>
-
       <div id="connectionMsg" class="msg"></div>
     </section>
 
-    <section id="adminArea" style="display:none">
+    <section id="ownerArea" style="display:none">
       <section class="card">
         <div class="section-title">
           <div>
-            <h2>Pantallas / Canales</h2>
-            <p class="help">Un canal puede alimentar varias TVs dentro de Unity.</p>
+            <h2>15 carteles del club</h2>
+            <p class="help">Cada cartel es independiente. El número mostrado es su slot remoto activo.</p>
           </div>
         </div>
-        <div id="channelGrid" class="channel-grid"></div>
+        <div id="posterGroups"></div>
       </section>
 
       <section class="card upload-card">
-        <h2>Publicar imagen</h2>
+        <h2>Publicar directamente como OWNER</h2>
+        <p class="help">Esta opción no requiere aprobación. El cambio se publica inmediatamente en GitHub Pages y VRChat lo detecta en la siguiente revisión.</p>
         <div class="grid">
-          <label>Canal
-            <select id="channelSelect"></select>
+          <label>Cartel
+            <select id="ownerPosterSelect"></select>
           </label>
           <label>Imagen
-            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp">
+            <input id="ownerFileInput" type="file" accept="image/jpeg,image/png,image/webp">
           </label>
         </div>
         <div class="preview-wrap">
-          <img id="preview" alt="Vista previa">
-          <div id="previewEmpty">Selecciona una imagen para ver la vista previa.</div>
+          <img id="ownerPreview" alt="Vista previa">
+          <div id="ownerPreviewEmpty">Selecciona una imagen.</div>
         </div>
         <div class="row">
-          <button id="publishBtn" class="primary">PUBLICAR EN VRCHAT</button>
+          <button id="ownerPublishBtn" class="primary">PUBLICAR AHORA</button>
         </div>
-        <div id="publishMsg" class="msg"></div>
+        <div id="ownerPublishMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <div>
+            <h2>Solicitudes pendientes</h2>
+            <p class="help">Nada de esta sección llega a VRChat hasta que pulses APROBAR.</p>
+          </div>
+          <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
+        </div>
+        <div id="pendingList" class="approval-grid"></div>
+        <div id="pendingMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <div>
+            <h2>Base de colaboradores</h2>
+            <p class="help">Usuarios, contraseñas y solicitudes se guardan en Cloudflare D1. Las contraseñas se almacenan con hash.</p>
+          </div>
+          <div id="dbPill" class="pill">COMPROBANDO</div>
+        </div>
+        <div class="row">
+          <button id="dbInitBtn" class="ghost">INICIALIZAR BASE</button>
+          <button id="refreshUsersBtn" class="ghost">RECARGAR USUARIOS</button>
+        </div>
+        <div id="dbMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <h2>Crear usuario colaborador</h2>
+        <div class="grid">
+          <label>Usuario
+            <input id="newUsername" placeholder="ej. dj_invitado">
+          </label>
+          <label>Contraseña inicial
+            <input id="newPassword" type="password" placeholder="mínimo 8 caracteres">
+          </label>
+        </div>
+        <div class="permission-box">
+          <strong>Permisos</strong>
+          <label class="check"><input type="checkbox" id="permSalon" checked> 6 carteles — Salón Principal</label>
+          <label class="check"><input type="checkbox" id="permColab"> 4 carteles — Colaboradores</label>
+          <label class="check"><input type="checkbox" id="permFuera"> 5 carteles — Fuera del Club</label>
+        </div>
+        <div class="row">
+          <button id="createUserBtn" class="primary">CREAR USUARIO</button>
+        </div>
+        <div id="userCreateMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <h2>Usuarios existentes</h2>
+        <div id="usersList" class="user-list"></div>
+        <div id="usersMsg" class="msg"></div>
       </section>
 
       <section class="card">
         <h2>Estado remoto</h2>
         <div class="stats">
           <div><span>Versión</span><strong id="versionStat">—</strong></div>
-          <div><span>Slots/canal</span><strong id="slotsStat">—</strong></div>
-          <div><span>Canales</span><strong id="channelsStat">—</strong></div>
+          <div><span>Slots/cartel</span><strong id="slotsStat">—</strong></div>
+          <div><span>Carteles</span><strong id="channelsStat">15</strong></div>
         </div>
         <pre id="rawConfig"></pre>
       </section>
     </section>
+
+    <section id="collabArea" style="display:none">
+      <section class="card">
+        <h2>Mis carteles autorizados</h2>
+        <div id="collabPosterGrid" class="channel-grid"></div>
+      </section>
+
+      <section class="card upload-card">
+        <h2>Enviar imagen para aprobación</h2>
+        <p class="help">La imagen NO se publica inmediatamente. Primero queda en PENDIENTE para revisión del OWNER.</p>
+        <div class="grid">
+          <label>Cartel
+            <select id="collabPosterSelect"></select>
+          </label>
+          <label>Imagen
+            <input id="collabFileInput" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+        </div>
+        <div class="preview-wrap small-preview">
+          <img id="collabPreview" alt="Vista previa">
+          <div id="collabPreviewEmpty">Selecciona una imagen.</div>
+        </div>
+        <div class="row">
+          <button id="submitApprovalBtn" class="primary">ENVIAR PARA APROBACIÓN</button>
+        </div>
+        <div id="collabSubmitMsg" class="msg"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <div>
+            <h2>Mis solicitudes</h2>
+            <p class="help">PENDIENTE, APROBADA o RECHAZADA.</p>
+          </div>
+          <button id="refreshMineBtn" class="ghost small">RECARGAR</button>
+        </div>
+        <div id="mineList" class="history-list"></div>
+        <div id="mineMsg" class="msg"></div>
+      </section>
+    </section>
   </main>
 
-  <footer>HYPN Remote Image System V1.1.0 • GitHub Pages + GitHub Login + VRChat UdonSharp</footer>
+  <footer>HYPN Remote Image System V1.3.0 • 15 carteles • Aprobación OWNER • GitHub Pages + Cloudflare</footer>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
