@@ -1,5 +1,6 @@
 name: Deploy HYPN Remote Image to GitHub Pages
 
+# HYPN: redeploy for repository rename to HYPN-ImagingSystem
 on:
   push:
     branches: ["main"]
