@@ -1,5 +1,5 @@
 name = "hypn-remote-image-auth"
-main = "src/index_v1410.js"
+main = "src/index_v1411.js"
 compatibility_date = "2026-09-01"
 
 [vars]
@@ -18,7 +18,8 @@ database_id = "5f5a1dfc-2f54-4c1f-b284-e2c5fe858aaf"
 # GITHUB_CLIENT_SECRET
 # SESSION_SECRET
 #
-# V1.4.10 usa src/index_v1410.js.
-# Corrige el formato de sesión de colaboradores para que /api/me pueda leerlo.
-# También acepta automáticamente claves antiguas PBKDF2 de 120000 iteraciones
-# y las migra al formato actual al iniciar sesión correctamente.
+# V1.4.11 usa src/index_v1411.js.
+# Mantiene las correcciones de login de V1.4.10.
+# Agrega roles personalizados libres para cada colaborador.
+# El rol personalizado es visual/organizativo; los permisos de carteles siguen
+# controlándose por la lista de permisos para no romper la seguridad existente.
