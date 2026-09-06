@@ -5,6 +5,36 @@
 
   function el(id) { return document.getElementById(id); }
 
+  function installPanel() {
+    const ownerArea = el('ownerArea');
+    if (!ownerArea || el('adminVrchatIdentityCard')) return;
+
+    const card = document.createElement('section');
+    card.id = 'adminVrchatIdentityCard';
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="section-title">
+        <div>
+          <h2>Identidad VRChat del ADMIN</h2>
+          <p class="help">Escribe tu nombre exacto de VRChat. Unity comparará este valor con tu nombre dentro del mundo para detectarte y forzar una resincronización. Esto NO limita las imágenes: todos los jugadores seguirán viendo los mismos carteles.</p>
+        </div>
+      </div>
+      <div class="grid">
+        <label>Nombre exacto en VRChat
+          <input id="adminVrchatName" maxlength="80" placeholder="ej. TuNombreExactoEnVRChat">
+        </label>
+      </div>
+      <div class="stats">
+        <div><span>ADMIN VRChat guardado</span><strong id="adminVrchatSavedStat">NO CONFIGURADO</strong></div>
+        <div><span>Uso en Unity</span><strong>DETECCIÓN + RESINCRONIZACIÓN</strong></div>
+        <div><span>Visibilidad</span><strong>GLOBAL PARA TODOS</strong></div>
+      </div>
+      <div class="row"><button id="saveAdminVrchatBtn" class="primary">GUARDAR NOMBRE VRCHAT</button></div>
+      <div id="adminVrchatMsg" class="msg"></div>`;
+
+    ownerArea.insertBefore(card, ownerArea.firstChild);
+  }
+
   function setMsg(text, kind = '') {
     const node = el('adminVrchatMsg');
     if (!node) return;
@@ -39,7 +69,7 @@
   async function saveName() {
     const field = el('adminVrchatName');
     const button = el('saveAdminVrchatBtn');
-    if (!field || typeof api !== 'function') return;
+    if (!field || !button || typeof api !== 'function') return;
 
     const adminVrchatName = field.value.trim();
     if (!adminVrchatName) {
@@ -69,6 +99,8 @@
   }
 
   function bind() {
+    installPanel();
+
     const button = el('saveAdminVrchatBtn');
     if (button && !button.dataset.hypnBound) {
       button.dataset.hypnBound = '1';
@@ -104,10 +136,9 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    bind();
-    setInterval(tick, 800);
-  });
+  installPanel();
+  bind();
+  setInterval(tick, 800);
 
   const footer = document.querySelector('footer');
   if (footer) {
