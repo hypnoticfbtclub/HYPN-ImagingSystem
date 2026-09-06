@@ -1,0 +1,67 @@
+{
+  "schema": 4,
+  "version": 14,
+  "revision": 8,
+  "slotsPerChannel": 8,
+  "ownerDisplayName": "Korvax Leviatán",
+  "ownerKey": "owner-21ea2b5e65742aa8",
+  "profileIndex": 0,
+  "channels": {
+    "salon_01": 5,
+    "salon_02": 2,
+    "salon_03": 2,
+    "salon_04": 0,
+    "salon_05": 2,
+    "salon_06": 0,
+    "colab_01": 0,
+    "colab_02": 0,
+    "colab_03": 0,
+    "colab_04": 0,
+    "fuera_01": 0,
+    "fuera_02": 0,
+    "fuera_03": 0,
+    "fuera_04": 0,
+    "fuera_05": 0
+  },
+  "labels": {
+    "salon_01": "Salón Principal 1",
+    "salon_02": "Salón Principal 2",
+    "salon_03": "Salón Principal 3",
+    "salon_04": "Salón Principal 4",
+    "salon_05": "Salón Principal 5",
+    "salon_06": "Salón Principal 6",
+    "colab_01": "Colaboradores 1",
+    "colab_02": "Colaboradores 2",
+    "colab_03": "Colaboradores 3",
+    "colab_04": "Colaboradores 4",
+    "fuera_01": "Fuera del Club 1",
+    "fuera_02": "Fuera del Club 2",
+    "fuera_03": "Fuera del Club 3",
+    "fuera_04": "Fuera del Club 4",
+    "fuera_05": "Fuera del Club 5"
+  },
+  "groups": {
+    "salon_principal": [
+      "salon_01",
+      "salon_02",
+      "salon_03",
+      "salon_04",
+      "salon_05",
+      "salon_06"
+    ],
+    "colaboradores": [
+      "colab_01",
+      "colab_02",
+      "colab_03",
+      "colab_04"
+    ],
+    "fuera_club": [
+      "fuera_01",
+      "fuera_02",
+      "fuera_03",
+      "fuera_04",
+      "fuera_05"
+    ]
+  },
+  "updatedAt": "2026-09-06T18:00:00.000Z"
+}

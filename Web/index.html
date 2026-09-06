@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>HYPN Imaging System</title>
-  <link rel="stylesheet" href="styles.css?v=1413">
+  <link rel="stylesheet" href="styles.css?v=1420">
 </head>
 <body>
   <header class="topbar">
@@ -57,7 +57,7 @@
 
     <section id="ownerArea" style="display:none">
       <section class="card">
-        <div class="section-title"><div><h2>Galería de carteles del club</h2><p class="help">El ADMIN publica directamente. Los indicadores de aprobación se muestran únicamente a los colaboradores.</p></div></div>
+        <div class="section-title"><div><h2>Galería de carteles del club</h2><p class="help">El ADMIN publica directamente en el perfil OWNER de VRChat seleccionado. Cada instancia muestra únicamente las imágenes del OWNER inicial registrado.</p></div></div>
         <div id="ownerTabs" class="tabs"></div>
         <div id="ownerPosterGrid" class="poster-grid"></div>
         <div id="ownerGalleryMsg" class="msg"></div>
@@ -65,7 +65,7 @@
 
       <section class="card">
         <div class="section-title">
-          <div><h2>Solicitudes pendientes de colaboradores</h2><p class="help">Las imágenes de colaboradores no llegan a VRChat hasta que el ADMIN pulse APROBAR. El panel avisa cuando aparece una solicitud nueva.</p></div>
+          <div><h2>Solicitudes pendientes de colaboradores</h2><p class="help">Las imágenes de colaboradores no llegan a VRChat hasta que el ADMIN pulse APROBAR. La aprobación publica en el perfil OWNER seleccionado.</p></div>
           <button id="refreshPendingBtn" class="ghost small">RECARGAR</button>
         </div>
         <div id="pendingList" class="approval-grid"></div>
@@ -119,11 +119,12 @@
     </section>
   </main>
 
-  <footer>HYPN Imaging System V1.4.13 • Pendiente = amarillo • Aprobado = verde • Rechazado/No aprobado = rojo</footer>
-  <script src="config.js?v=1413"></script>
-  <script src="app.js?v=1413"></script>
-  <script src="user-admin-v149.js?v=1413"></script>
-  <script src="custom-role-v1411.js?v=1413"></script>
-  <script src="collab-request-status-v1413.js?v=1413"></script>
+  <footer>HYPN Imaging System V1.4.20 • Perfiles OWNER de instancia • Pendiente = amarillo • Aprobado = verde • Rechazado/No aprobado = rojo</footer>
+  <script src="config.js?v=1420"></script>
+  <script src="owner-profiles-v1420.js?v=1420"></script>
+  <script src="app.js?v=1420"></script>
+  <script src="user-admin-v149.js?v=1420"></script>
+  <script src="custom-role-v1411.js?v=1420"></script>
+  <script src="collab-request-status-v1413.js?v=1420"></script>
 </body>
 </html>

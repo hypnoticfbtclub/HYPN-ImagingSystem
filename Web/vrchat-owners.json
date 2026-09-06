@@ -1,7 +1,18 @@
 {
-  "schema": 1,
-  "version": 1,
-  "revision": 1,
-  "updatedAt": "2026-09-06T15:15:00.000Z",
-  "owners": []
+  "schema": 2,
+  "version": 2,
+  "revision": 2,
+  "maxOwnerProfiles": 32,
+  "updatedAt": "2026-09-06T18:00:00.000Z",
+  "owners": [
+    {
+      "displayName": "Korvax Leviatán",
+      "key": "owner-21ea2b5e65742aa8",
+      "profileIndex": 0,
+      "active": true,
+      "createdAt": "2026-09-06T18:00:00.000Z",
+      "updatedAt": "2026-09-06T18:00:00.000Z",
+      "configPath": "owner-slots/slot-00/remote-config.json"
+    }
+  ]
 }
