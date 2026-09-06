@@ -1,6 +1,6 @@
 name: Deploy HYPN Remote Image to GitHub Pages
 
-# HYPN: redeploy for repository rename to HYPN-ImagingSystem
+# HYPN: deploy Web + perfil OWNER de instancia
 on:
   push:
     branches: ["main"]
@@ -27,6 +27,36 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Build Korvax OWNER profile fallback
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          root = Path('Web')
+          source_images = root / 'images'
+          target_root = root / 'owner-slots' / 'slot-00'
+          target_images = target_root / 'images'
+
+          target_root.mkdir(parents=True, exist_ok=True)
+          if target_images.exists():
+              shutil.rmtree(target_images)
+          shutil.copytree(source_images, target_images)
+
+          with (root / 'remote-config.json').open('r', encoding='utf-8') as fh:
+              cfg = json.load(fh)
+
+          cfg['schema'] = 4
+          cfg['ownerDisplayName'] = 'Korvax Leviatán'
+          cfg['ownerKey'] = 'owner-21ea2b5e65742aa8'
+          cfg['profileIndex'] = 0
+
+          with (target_root / 'remote-config.json').open('w', encoding='utf-8') as fh:
+              json.dump(cfg, fh, ensure_ascii=False, indent=2)
+              fh.write('\n')
+          PY
 
       - name: Setup / Enable Pages
         uses: actions/configure-pages@v5
