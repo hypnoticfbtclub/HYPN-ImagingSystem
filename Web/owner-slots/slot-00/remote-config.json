@@ -1,11 +1,9 @@
 {
   "schema": 4,
   "version": 14,
-  "revision": 8,
   "slotsPerChannel": 8,
-  "ownerDisplayName": "Korvax Leviatán",
-  "ownerKey": "owner-21ea2b5e65742aa8",
-  "profileIndex": 0,
+  "adminVrchatName": "",
+  "adminVrchatUpdatedAt": null,
   "channels": {
     "salon_01": 5,
     "salon_02": 2,
@@ -63,5 +61,9 @@
       "fuera_05"
     ]
   },
-  "updatedAt": "2026-09-06T18:00:00.000Z"
+  "updatedAt": "2026-09-06T18:17:00.000Z",
+  "revision": 9,
+  "ownerDisplayName": "Korvax Leviatán",
+  "ownerKey": "owner-21ea2b5e65742aa8",
+  "profileIndex": 0
 }
