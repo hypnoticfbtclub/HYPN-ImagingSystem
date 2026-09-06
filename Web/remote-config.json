@@ -2,6 +2,8 @@
   "schema": 2,
   "version": 14,
   "slotsPerChannel": 8,
+  "adminVrchatName": "",
+  "adminVrchatUpdatedAt": null,
   "channels": {
     "salon_01": 5,
     "salon_02": 2,
