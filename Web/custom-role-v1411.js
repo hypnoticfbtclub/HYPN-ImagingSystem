@@ -176,3 +176,11 @@
   const footer = document.querySelector('footer');
   if (footer) footer.textContent = `HYPN Imaging System V${VERSION} • roles personalizados • ADMIN publica directo`;
 })();
+
+(() => {
+  if (document.querySelector('script[data-hypn-admin-vrchat]')) return;
+  const script = document.createElement('script');
+  script.src = 'admin-vrchat-v1418.js?v=1418';
+  script.dataset.hypnAdminVrchat = '1';
+  document.body.appendChild(script);
+})();
