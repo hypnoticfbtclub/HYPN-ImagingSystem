@@ -1,5 +1,3 @@
-# HYPN Remote Image System
+HYPN Imaging System
 
-Repositorio de publicación remota para imágenes de VRChat.
-
-Este repositorio es administrado por HYPN Remote Image System.
+Web + Cloudflare Worker + Unity/VRChat para administrar 15 carteles remotos con perfiles separados por OWNER de instancia.
