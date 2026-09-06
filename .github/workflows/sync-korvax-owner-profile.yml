@@ -1,0 +1,66 @@
+name: Sync Korvax OWNER profile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Web/remote-config.json"
+      - "Web/images/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hypn-korvax-owner-profile
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror global publish into Korvax OWNER profile
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          root = Path('Web')
+          source_images = root / 'images'
+          target_root = root / 'owner-slots' / 'slot-00'
+          target_images = target_root / 'images'
+
+          target_root.mkdir(parents=True, exist_ok=True)
+          if target_images.exists():
+              shutil.rmtree(target_images)
+          shutil.copytree(source_images, target_images)
+
+          with (root / 'remote-config.json').open('r', encoding='utf-8') as fh:
+              cfg = json.load(fh)
+
+          cfg['schema'] = 4
+          cfg['ownerDisplayName'] = 'Korvax Leviatán'
+          cfg['ownerKey'] = 'owner-21ea2b5e65742aa8'
+          cfg['profileIndex'] = 0
+
+          with (target_root / 'remote-config.json').open('w', encoding='utf-8') as fh:
+              json.dump(cfg, fh, ensure_ascii=False, indent=2)
+              fh.write('\n')
+          PY
+
+      - name: Commit synchronized profile
+        run: |
+          if git diff --quiet -- Web/owner-slots/slot-00; then
+            echo "Korvax profile already synchronized."
+            exit 0
+          fi
+          git config user.name "HYPN Imaging Sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add Web/owner-slots/slot-00
+          git commit -m "HYPN: sincronizar perfil Korvax Leviatán"
+          git push
